@@ -4,12 +4,12 @@ import {
   getDemoDeck,
   initialScoreState,
   initialStats,
-  isCorrect,
+  isChoiceCorrect,
   scoreCorrect,
   scoreTimeout,
   scoreWrong,
-  type Mode,
   type Card,
+  type Mode,
 } from "./engine";
 
 type Status = "ready" | "running" | "finished";
@@ -23,7 +23,7 @@ export function usePlaySession(deckId: string, mode: Mode) {
   // total timer
   const [remainingMs, setRemainingMs] = useState(cfg.totalMs);
 
-  // per-card timer (NEW)
+  // per-card timer
   const [cardRemainingMs, setCardRemainingMs] = useState(cfg.perCardMs);
 
   const [index, setIndex] = useState(0);
@@ -31,8 +31,6 @@ export function usePlaySession(deckId: string, mode: Mode) {
 
   const [scoreState, setScoreState] = useState(initialScoreState());
   const [stats, setStats] = useState(initialStats());
-
-  const [answer, setAnswer] = useState("");
 
   const startedAtRef = useRef<number>(0);
   const cardStartedAtRef = useRef<number>(0);
@@ -56,23 +54,20 @@ export function usePlaySession(deckId: string, mode: Mode) {
     setIndex(0);
     setScoreState(initialScoreState());
     setStats(initialStats());
-    setAnswer("");
 
     const now = Date.now();
     startedAtRef.current = now;
     cardStartedAtRef.current = now;
 
     setRemainingMs(cfg.totalMs);
-    setCardRemainingMs(cfg.perCardMs); // NEW
+    setCardRemainingMs(cfg.perCardMs);
   }
 
   function nextCard(resetTimer = true) {
-    setAnswer("");
     setIndex((i) => i + 1);
-
     if (resetTimer) {
       cardStartedAtRef.current = Date.now();
-      setCardRemainingMs(cfg.perCardMs); // NEW
+      setCardRemainingMs(cfg.perCardMs);
     }
   }
 
@@ -96,11 +91,11 @@ export function usePlaySession(deckId: string, mode: Mode) {
     nextCard(true);
   }
 
-  function submit() {
+  function choose(selectedIndex: number) {
     if (status !== "running" || !current) return;
 
     const responseMs = Date.now() - cardStartedAtRef.current;
-    const correct = isCorrect(answer, current.answer);
+    const correct = isChoiceCorrect(selectedIndex, current.correctIndex);
 
     if (correct) {
       setScoreState((s) => scoreCorrect(s, responseMs, cfg.perCardMs));
@@ -138,7 +133,7 @@ export function usePlaySession(deckId: string, mode: Mode) {
     nextCard(true);
   }
 
-  // timer loop: total timer + per-card timer
+  // timer loop: total + per-card
   useEffect(() => {
     if (status !== "running") return;
 
@@ -146,7 +141,6 @@ export function usePlaySession(deckId: string, mode: Mode) {
     tickTimerRef.current = window.setInterval(() => {
       const now = Date.now();
 
-      // total timer
       const elapsed = now - startedAtRef.current;
       const rem = Math.max(0, cfg.totalMs - elapsed);
       setRemainingMs(rem);
@@ -156,7 +150,6 @@ export function usePlaySession(deckId: string, mode: Mode) {
         return;
       }
 
-      // per-card timer (NEW)
       const cardElapsed = now - cardStartedAtRef.current;
       const cardRem = Math.max(0, cfg.perCardMs - cardElapsed);
       setCardRemainingMs(cardRem);
@@ -176,14 +169,12 @@ export function usePlaySession(deckId: string, mode: Mode) {
     current,
     index,
     remainingMs,
-    cardRemainingMs, // NEW
+    cardRemainingMs,
     status,
     scoreState,
     stats,
-    answer,
-    setAnswer,
     start,
-    submit,
+    choose, // NEW: button-driven answer
   };
 }
 

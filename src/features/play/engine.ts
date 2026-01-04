@@ -5,7 +5,8 @@ export type Mode = "sprint" | "sudden";
 export type Card = {
   id: string;
   prompt: string;
-  answer: string;
+  choices: string[];
+  correctIndex: number; // index into choices
 };
 
 export type RunStats = {
@@ -18,64 +19,68 @@ export type RunStats = {
 
 export type PlayConfig = {
   mode: Mode;
-  totalMs: number; // sprint = 60s, sudden = effectively infinite
-  perCardMs: number; // default 6000ms
+  totalMs: number;
+  perCardMs: number;
 };
 
 export function configFor(mode: Mode): PlayConfig {
-  if (mode === "sudden") {
-    return { mode, totalMs: 60_000, perCardMs: 6000 }; // still keep an overall cap
-  }
+  // keep same for now (sudden death still caps at 60s total)
   return { mode, totalMs: 60_000, perCardMs: 6000 };
 }
 
-// Demo deck (replace later with Supabase)
+// Demo deck (MC/TF style). Replace later with Supabase.
 export function getDemoDeck(_deckId: string): Card[] {
-  // You can branch by deckId later. For now: one deck.
   return [
     {
       id: "1",
-      prompt: "What does CPU stand for?",
-      answer: "central processing unit",
+      prompt: "CPU stands for…",
+      choices: [
+        "Central Processing Unit",
+        "Computer Personal Unit",
+        "Core Power Utility",
+        "Central Program Upload",
+      ],
+      correctIndex: 0,
     },
-    { id: "2", prompt: "2 + 2 =", answer: "4" },
-    { id: "3", prompt: "Capital of France?", answer: "paris" },
+    {
+      id: "2",
+      prompt: "2 + 2 =",
+      choices: ["3", "4", "5", "22"],
+      correctIndex: 1,
+    },
+    {
+      id: "3",
+      prompt: "Capital of France?",
+      choices: ["Rome", "Berlin", "Paris", "Madrid"],
+      correctIndex: 2,
+    },
     {
       id: "4",
-      prompt: "What is the chemical symbol for water?",
-      answer: "h2o",
+      prompt: "Water’s chemical formula is…",
+      choices: ["CO2", "H2O", "NaCl", "O2"],
+      correctIndex: 1,
     },
-    { id: "5", prompt: "Derivative of x^2?", answer: "2x" },
-    { id: "6", prompt: "Opposite of 'expand'?", answer: "contract" },
+    {
+      id: "5",
+      prompt: "Derivative of x² is…",
+      choices: ["x", "2x", "x²", "2"],
+      correctIndex: 1,
+    },
+    // True/False as 2-choice MC
+    {
+      id: "6",
+      prompt: "True or False: The Pacific is larger than the Atlantic.",
+      choices: ["True", "False"],
+      correctIndex: 0,
+    },
   ];
 }
 
-export function normalize(s: string): string {
-  return s.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-export function isCorrect(userAnswer: string, correctAnswer: string): boolean {
-  return normalize(userAnswer) === normalize(correctAnswer);
-}
-
-export function updateStats(
-  stats: RunStats,
-  kind: "correct" | "wrong" | "timeout",
-  responseMs?: number
-): RunStats {
-  const next = { ...stats };
-  if (kind === "correct") next.correct += 1;
-  if (kind === "wrong") next.wrong += 1;
-  if (kind === "timeout") next.timeout += 1;
-  next.answered += 1;
-
-  if (typeof responseMs === "number") {
-    // running average
-    next.avgResponseMs = Math.round(
-      (next.avgResponseMs * (next.answered - 1) + responseMs) / next.answered
-    );
-  }
-  return next;
+export function isChoiceCorrect(
+  selectedIndex: number,
+  correctIndex: number
+): boolean {
+  return selectedIndex === correctIndex;
 }
 
 export function initialStats(): RunStats {

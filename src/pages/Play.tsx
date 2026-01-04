@@ -22,7 +22,6 @@ export default function Play() {
 
   return (
     <div className="p-6 max-w-xl mx-auto">
-      {/* MENU LINK (NEW) */}
       <div className="mb-4">
         <Link className="text-sm underline opacity-80" to="/">
           ← Menu
@@ -68,7 +67,7 @@ export default function Play() {
               Card {session.index + 1} / {session.deck.length}
             </div>
 
-            {/* PER-CARD COUNTDOWN BAR (NEW) */}
+            {/* per-card countdown */}
             <div className="h-2 w-full rounded bg-gray-200 overflow-hidden">
               <div
                 className="h-full bg-black"
@@ -84,27 +83,22 @@ export default function Play() {
               {session.current.prompt}
             </div>
 
-            <input
-              value={session.answer}
-              onChange={(e) => session.setAnswer(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") session.submit();
-              }}
-              className="w-full border rounded px-3 py-2"
-              placeholder="Type answer and press Enter"
-              autoFocus
-            />
-
-            <button
-              onClick={session.submit}
-              className="px-4 py-2 rounded bg-black text-white"
-            >
-              Submit
-            </button>
+            {/* CHOICES (NEW) */}
+            <div className="grid grid-cols-1 gap-2">
+              {session.current.choices.map((c, i) => (
+                <button
+                  key={i}
+                  onClick={() => session.choose(i)}
+                  className="w-full text-left px-3 py-2 rounded border hover:bg-black hover:text-white transition"
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
 
             <div className="text-xs opacity-70">
-              Stats — ✅ {session.stats.correct} | ❌ {session.stats.wrong} | ⏳{" "}
-              {session.stats.timeout}
+              Tap an answer • Stats — ✅ {session.stats.correct} | ❌{" "}
+              {session.stats.wrong} | ⏳ {session.stats.timeout}
             </div>
           </div>
         ) : (
