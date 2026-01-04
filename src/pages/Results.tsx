@@ -15,8 +15,56 @@ type RunData = {
 
 function decodeRunData(encoded: string): RunData | null {
   try {
-    const json = atob(encoded);
-    return JSON.parse(json);
+    // Normalize base64url to base64
+    let normalized = encoded.replace(/-/g, "+").replace(/_/g, "/");
+
+    // Add padding if needed
+    const pad = normalized.length % 4;
+    if (pad === 1) {
+      return null; // Invalid base64 length
+    } else if (pad === 2) {
+      normalized += "==";
+    } else if (pad === 3) {
+      normalized += "=";
+    }
+
+    // Decode base64
+    const decoded = atob(normalized);
+
+    // Try to parse directly or decode URI first
+    const d = decoded.trim();
+    let parsed;
+    if (d.startsWith("{")) {
+      parsed = JSON.parse(d);
+    } else {
+      parsed = JSON.parse(decodeURIComponent(d));
+    }
+
+    // Validate required string fields
+    if (
+      typeof parsed.runId !== "string" ||
+      typeof parsed.deckId !== "string" ||
+      typeof parsed.mode !== "string"
+    ) {
+      console.error("Invalid run data: missing required string fields");
+      return null;
+    }
+
+    // Coerce numeric fields
+    const result: RunData = {
+      runId: parsed.runId,
+      deckId: parsed.deckId,
+      mode: parsed.mode,
+      score: Number(parsed.score) || 0,
+      accuracy: Number(parsed.accuracy) || 0,
+      correct: Number(parsed.correct) || 0,
+      answered: Number(parsed.answered) || 0,
+      bestStreak: Number(parsed.bestStreak) || 0,
+      avgResponseMs: Number(parsed.avgResponseMs) || 0,
+      timestamp: Number(parsed.timestamp) || 0,
+    };
+
+    return result;
   } catch (err) {
     console.error("Failed to decode run data:", err);
     return null;
