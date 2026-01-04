@@ -12,13 +12,13 @@ import {
   type Mode,
 } from "./engine";
 
-type Status = "ready" | "running" | "finished";
+type Phase = "ready" | "playing" | "reveal" | "finished";
 
 export function usePlaySession(deckId: string, mode: Mode) {
   const cfg = useMemo(() => configFor(mode), [mode]);
   const deck = useMemo(() => shuffle(getDemoDeck(deckId)), [deckId]);
 
-  const [status, setStatus] = useState<Status>("ready");
+  const [phase, setPhase] = useState<Phase>("ready");
 
   // total timer
   const [remainingMs, setRemainingMs] = useState(cfg.totalMs);
@@ -36,9 +36,11 @@ export function usePlaySession(deckId: string, mode: Mode) {
   >(null);
   const [feedbackTick, setFeedbackTick] = useState(0);
   const [lastChoiceIndex, setLastChoiceIndex] = useState<number | null>(null);
+
   const startedAtRef = useRef<number>(0);
   const cardStartedAtRef = useRef<number>(0);
   const tickTimerRef = useRef<number | null>(null);
+  const revealTimerRef = useRef<number | null>(null);
 
   function stopLoop() {
     if (tickTimerRef.current) {
@@ -47,20 +49,31 @@ export function usePlaySession(deckId: string, mode: Mode) {
     }
   }
 
+  function clearRevealTimer() {
+    if (revealTimerRef.current) {
+      window.clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+  }
+
   function finish(reason: string) {
-    setStatus("finished");
+    setPhase("finished");
     stopLoop();
+    clearRevealTimer();
     console.log("[RecallRush] finished:", reason);
   }
 
   function start() {
-    setStatus("running");
+    setPhase("playing");
     setIndex(0);
     setScoreState(initialScoreState());
     setStats(initialStats());
     setFeedback(null);
     setFeedbackTick(0);
     setLastChoiceIndex(null);
+
+    stopLoop();
+    clearRevealTimer();
 
     const now = Date.now();
     startedAtRef.current = now;
@@ -71,7 +84,9 @@ export function usePlaySession(deckId: string, mode: Mode) {
   }
 
   function nextCard(resetTimer = true) {
-    // Don't clear lastChoiceIndex here - let animation finish
+    setLastChoiceIndex(null);
+    setFeedback(null);
+    setPhase("playing");
     setIndex((i) => i + 1);
     if (resetTimer) {
       cardStartedAtRef.current = Date.now();
@@ -82,7 +97,7 @@ export function usePlaySession(deckId: string, mode: Mode) {
   function handleTimeout() {
     setFeedback("timeout");
     setFeedbackTick((t) => t + 1);
-    // Don't clear lastChoiceIndex here - there wasn't a choice made
+    setPhase("reveal");
     setScoreState((s) => scoreTimeout(s));
     setStats((st) => ({
       ...st,
@@ -90,20 +105,24 @@ export function usePlaySession(deckId: string, mode: Mode) {
       answered: st.answered + 1,
     }));
 
-    if (mode === "sudden") {
-      finish("timeout (sudden death)");
-      return;
-    }
+    clearRevealTimer();
+    revealTimerRef.current = window.setTimeout(() => {
+      if (mode === "sudden") {
+        finish("timeout (sudden death)");
+        return;
+      }
 
-    if (index + 1 >= deck.length) {
-      finish("deck complete");
-      return;
-    }
-    nextCard(true);
+      if (index + 1 >= deck.length) {
+        finish("deck complete");
+        return;
+      }
+      nextCard(true);
+    }, 200);
   }
 
   function choose(selectedIndex: number) {
-    if (status !== "running" || !current) return;
+    if (phase !== "playing" || !current) return;
+
     setLastChoiceIndex(selectedIndex);
 
     const responseMs = Date.now() - cardStartedAtRef.current;
@@ -134,29 +153,29 @@ export function usePlaySession(deckId: string, mode: Mode) {
         wrong: st.wrong + 1,
         answered: st.answered + 1,
       }));
+    }
 
-      if (mode === "sudden") {
+    setPhase("reveal");
+
+    clearRevealTimer();
+    revealTimerRef.current = window.setTimeout(() => {
+      if (!correct && mode === "sudden") {
         finish("wrong (sudden death)");
         return;
       }
-    }
 
-    if (index + 1 >= deck.length) {
-      finish("deck complete");
-      return;
-    }
+      if (index + 1 >= deck.length) {
+        finish("deck complete");
+        return;
+      }
 
-    // Clear lastChoiceIndex after animation completes (200ms)
-    setTimeout(() => {
-      setLastChoiceIndex(null);
+      nextCard(true);
     }, 200);
-
-    nextCard(true);
   }
 
   // timer loop: total + per-card
   useEffect(() => {
-    if (status !== "running") return;
+    if (phase !== "playing") return;
 
     stopLoop();
     tickTimerRef.current = window.setInterval(() => {
@@ -182,7 +201,15 @@ export function usePlaySession(deckId: string, mode: Mode) {
 
     return () => stopLoop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, cfg.totalMs, cfg.perCardMs, index, mode]);
+  }, [phase, cfg.totalMs, cfg.perCardMs, index, mode]);
+
+  // cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopLoop();
+      clearRevealTimer();
+    };
+  }, []);
 
   return {
     cfg,
@@ -191,11 +218,11 @@ export function usePlaySession(deckId: string, mode: Mode) {
     index,
     remainingMs,
     cardRemainingMs,
-    status,
+    phase,
     scoreState,
     stats,
     start,
-    choose, // button-driven answer
+    choose,
     feedback,
     feedbackTick,
     lastChoiceIndex,
