@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, Link } from "react-router-dom";
 import Play from "./pages/Play";
+import Results from "./pages/Results";
 
 function Home() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/play/:deckId" element={<Play />} />
+        <Route path="/results" element={<Results />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

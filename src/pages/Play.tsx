@@ -147,7 +147,7 @@ export default function Play() {
 
     const encoded = encodeRunData(runData);
     const base = window.location.origin;
-    const link = `${base}/play/${deckId}?mode=${mode}&r=${encoded}`;
+    const link = `${base}/results?r=${encoded}`;
 
     try {
       await navigator.clipboard.writeText(link);
