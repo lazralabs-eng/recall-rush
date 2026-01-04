@@ -16,7 +16,7 @@ type Phase = "ready" | "playing" | "reveal" | "finished";
 
 export function usePlaySession(deckId: string, mode: Mode) {
   const cfg = useMemo(() => configFor(mode), [mode]);
-  const deck = useMemo(() => shuffle(getDemoDeck(deckId)), [deckId]);
+const deck = useMemo(() => shuffle(getDemoDeck()), [deckId]);
 
   const [phase, setPhase] = useState<Phase>("ready");
 
@@ -36,6 +36,8 @@ export function usePlaySession(deckId: string, mode: Mode) {
   >(null);
   const [feedbackTick, setFeedbackTick] = useState(0);
   const [lastChoiceIndex, setLastChoiceIndex] = useState<number | null>(null);
+  const [runId, setRunId] = useState<string>("");
+  const [finishedAt, setFinishedAt] = useState<number>(0);
 
   const startedAtRef = useRef<number>(0);
   const cardStartedAtRef = useRef<number>(0);
@@ -58,6 +60,7 @@ export function usePlaySession(deckId: string, mode: Mode) {
 
   function finish(reason: string) {
     setPhase("finished");
+    setFinishedAt(Date.now());
     stopLoop();
     clearRevealTimer();
     console.log("[RecallRush] finished:", reason);
@@ -71,6 +74,8 @@ export function usePlaySession(deckId: string, mode: Mode) {
     setFeedback(null);
     setFeedbackTick(0);
     setLastChoiceIndex(null);
+    setFinishedAt(0);
+    setRunId(`${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
     stopLoop();
     clearRevealTimer();
@@ -226,6 +231,8 @@ export function usePlaySession(deckId: string, mode: Mode) {
     feedback,
     feedbackTick,
     lastChoiceIndex,
+    runId,
+    finishedAt,
   };
 }
 

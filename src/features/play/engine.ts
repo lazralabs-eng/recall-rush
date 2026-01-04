@@ -29,7 +29,7 @@ export function configFor(mode: Mode): PlayConfig {
 }
 
 // Demo deck (MC/TF style). Replace later with Supabase.
-export function getDemoDeck(_deckId: string): Card[] {
+export function getDemoDeck(): Card[] {
   return [
     {
       id: "1",
