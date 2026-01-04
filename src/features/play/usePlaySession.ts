@@ -31,7 +31,11 @@ export function usePlaySession(deckId: string, mode: Mode) {
 
   const [scoreState, setScoreState] = useState(initialScoreState());
   const [stats, setStats] = useState(initialStats());
-
+  const [feedback, setFeedback] = useState<
+    null | "correct" | "wrong" | "timeout"
+  >(null);
+  const [feedbackTick, setFeedbackTick] = useState(0);
+  const [lastChoiceIndex, setLastChoiceIndex] = useState<number | null>(null);
   const startedAtRef = useRef<number>(0);
   const cardStartedAtRef = useRef<number>(0);
   const tickTimerRef = useRef<number | null>(null);
@@ -54,6 +58,9 @@ export function usePlaySession(deckId: string, mode: Mode) {
     setIndex(0);
     setScoreState(initialScoreState());
     setStats(initialStats());
+    setFeedback(null);
+    setFeedbackTick(0);
+    setLastChoiceIndex(null);
 
     const now = Date.now();
     startedAtRef.current = now;
@@ -64,6 +71,7 @@ export function usePlaySession(deckId: string, mode: Mode) {
   }
 
   function nextCard(resetTimer = true) {
+    // Don't clear lastChoiceIndex here - let animation finish
     setIndex((i) => i + 1);
     if (resetTimer) {
       cardStartedAtRef.current = Date.now();
@@ -72,6 +80,9 @@ export function usePlaySession(deckId: string, mode: Mode) {
   }
 
   function handleTimeout() {
+    setFeedback("timeout");
+    setFeedbackTick((t) => t + 1);
+    // Don't clear lastChoiceIndex here - there wasn't a choice made
     setScoreState((s) => scoreTimeout(s));
     setStats((st) => ({
       ...st,
@@ -93,11 +104,14 @@ export function usePlaySession(deckId: string, mode: Mode) {
 
   function choose(selectedIndex: number) {
     if (status !== "running" || !current) return;
+    setLastChoiceIndex(selectedIndex);
 
     const responseMs = Date.now() - cardStartedAtRef.current;
     const correct = isChoiceCorrect(selectedIndex, current.correctIndex);
 
     if (correct) {
+      setFeedback("correct");
+      setFeedbackTick((t) => t + 1);
       setScoreState((s) => scoreCorrect(s, responseMs, cfg.perCardMs));
       setStats((st) => ({
         ...st,
@@ -112,6 +126,8 @@ export function usePlaySession(deckId: string, mode: Mode) {
               ),
       }));
     } else {
+      setFeedback("wrong");
+      setFeedbackTick((t) => t + 1);
       setScoreState((s) => scoreWrong(s));
       setStats((st) => ({
         ...st,
@@ -129,6 +145,11 @@ export function usePlaySession(deckId: string, mode: Mode) {
       finish("deck complete");
       return;
     }
+
+    // Clear lastChoiceIndex after animation completes (200ms)
+    setTimeout(() => {
+      setLastChoiceIndex(null);
+    }, 200);
 
     nextCard(true);
   }
@@ -174,7 +195,10 @@ export function usePlaySession(deckId: string, mode: Mode) {
     scoreState,
     stats,
     start,
-    choose, // NEW: button-driven answer
+    choose, // button-driven answer
+    feedback,
+    feedbackTick,
+    lastChoiceIndex,
   };
 }
 
