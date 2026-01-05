@@ -1,0 +1,77 @@
+// Worker to inject OG tags for /results route
+export default {
+  async fetch(request, env) {
+    try {
+      const url = new URL(request.url);
+
+      // Get the asset response
+      let response = await env.ASSETS.fetch(request);
+
+      // Handle SPA routing - serve index.html for non-file paths
+      if (response.status === 404 && !url.pathname.match(/\.[a-zA-Z0-9]+$/)) {
+        response = await env.ASSETS.fetch(new URL('/index.html', url.origin));
+      }
+
+      // Inject OG tags for /results route with ?r= parameter
+      if (url.pathname === '/results' && url.searchParams.has('r')) {
+        const runParam = url.searchParams.get('r');
+
+        try {
+          // Decode the run data
+          const decoded = atob(runParam.replace(/-/g, '+').replace(/_/g, '/'));
+          const parsed = JSON.parse(decoded);
+
+          let score, accuracy, streak, avgMs;
+
+          // Handle array format [score, accuracy, streak, avgMs]
+          if (Array.isArray(parsed)) {
+            [score, accuracy, streak, avgMs] = parsed;
+          } else if (parsed.s !== undefined) {
+            // Handle object format {s, a, bs, ar}
+            score = parsed.s;
+            accuracy = parsed.a;
+            streak = parsed.bs;
+            avgMs = parsed.ar;
+          } else {
+            // Old format
+            score = parsed.score;
+            accuracy = parsed.accuracy;
+            streak = parsed.bestStreak;
+            avgMs = parsed.avgResponseMs;
+          }
+
+          const ogImageUrl = `https://recall-rush-og-worker.christopher-037.workers.dev/?score=${score}&acc=${accuracy}&streak=${streak}&avg=${avgMs}`;
+          const title = 'Recall Rush — Shared Run';
+          const description = `Score: ${score} • Accuracy: ${accuracy}% • Best streak: ${streak}`;
+
+          // Inject OG meta tags into HTML
+          return new HTMLRewriter()
+            .on('head', {
+              element(element) {
+                element.append(
+                  `<meta property="og:title" content="${title}">
+                   <meta property="og:description" content="${description}">
+                   <meta property="og:image" content="${ogImageUrl}">
+                   <meta property="og:type" content="website">
+                   <meta property="og:url" content="${url.href}">
+                   <meta name="twitter:card" content="summary_large_image">
+                   <meta name="twitter:title" content="${title}">
+                   <meta name="twitter:description" content="${description}">
+                   <meta name="twitter:image" content="${ogImageUrl}">`,
+                  { html: true }
+                );
+              }
+            })
+            .transform(response);
+        } catch (e) {
+          // If decoding fails, just return the response as-is
+          console.error('Failed to decode run data:', e);
+        }
+      }
+
+      return response;
+    } catch (err) {
+      return new Response(`Worker error: ${err.message}`, { status: 500 });
+    }
+  }
+}
