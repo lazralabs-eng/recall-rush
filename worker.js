@@ -1,11 +1,17 @@
 // Worker to inject OG tags for /results route
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
 
-      // Get the asset response
-      let response = await env.ASSETS.fetch(request);
+      // Get the asset response (use ASSETS binding or fallback to fetch)
+      let response;
+      if (env.ASSETS) {
+        response = await env.ASSETS.fetch(request);
+      } else {
+        // Fallback for local dev or different config
+        return new Response('ASSETS binding not configured', { status: 500 });
+      }
 
       // Handle SPA routing - serve index.html for non-file paths
       if (response.status === 404 && !url.pathname.match(/\.[a-zA-Z0-9]+$/)) {
