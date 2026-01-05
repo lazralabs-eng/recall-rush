@@ -2,7 +2,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 
 // Cloudflare Worker endpoint for OG images
-const OG_BASE = "https://og.recall-rush.workers.dev";
+const OG_BASE = "https://recall-rush-og-worker.christopher-037.workers.dev";
 
 type RunData = {
   runId: string;
@@ -189,9 +189,9 @@ export default function Results() {
 
           <Link
             to={`/play/${resultsData.deckId}?mode=${resultsData.mode}`}
-            className="block w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition text-center"
+            className="block w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition text-center font-semibold"
           >
-            Try This Deck
+            Beat this score
           </Link>
         </div>
       </div>
