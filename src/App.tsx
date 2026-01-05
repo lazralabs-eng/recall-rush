@@ -11,12 +11,18 @@ function Home() {
       <div className="mt-6 flex gap-3">
         <Link
           className="px-4 py-2 rounded bg-black text-white"
-          to="/play/demo?mode=sprint"
+          to="/play/nfl-playoffs?mode=sprint"
         >
-          Sprint (60s)
+          NFL Playoffs Sprint
         </Link>
-        <Link className="px-4 py-2 rounded border" to="/play/demo?mode=sudden">
-          Sudden Death
+        <Link className="px-4 py-2 rounded border" to="/play/nfl-playoffs?mode=sudden">
+          NFL Sudden Death
+        </Link>
+      </div>
+
+      <div className="mt-4 text-sm opacity-60">
+        <Link to="/play/demo?mode=sprint" className="underline">
+          Try demo deck
         </Link>
       </div>
     </div>

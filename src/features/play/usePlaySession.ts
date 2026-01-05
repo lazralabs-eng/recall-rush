@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   configFor,
-  getDemoDeck,
+  getDeck,
   initialScoreState,
   initialStats,
   isChoiceCorrect,
@@ -16,7 +16,7 @@ type Phase = "ready" | "playing" | "reveal" | "finished";
 
 export function usePlaySession(deckId: string, mode: Mode) {
   const cfg = useMemo(() => configFor(mode), [mode]);
-const deck = useMemo(() => shuffle(getDemoDeck()), [deckId]);
+  const deck = useMemo(() => shuffle(getDeck(deckId)), [deckId]);
 
   const [phase, setPhase] = useState<Phase>("ready");
 

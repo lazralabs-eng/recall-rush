@@ -1,4 +1,8 @@
 import { Link, useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
+
+// Cloudflare Worker endpoint for OG images
+const OG_BASE = "https://og.recall-rush.workers.dev";
 
 type RunData = {
   runId: string;
@@ -75,6 +79,37 @@ export default function Results() {
   const [sp] = useSearchParams();
   const runParam = sp.get("r");
   const resultsData = runParam ? decodeRunData(runParam) : null;
+
+  // Update OG meta tags for social sharing
+  useEffect(() => {
+    if (!resultsData) return;
+
+    const ogImageUrl = `${OG_BASE}/og?score=${resultsData.score}&acc=${resultsData.accuracy}&streak=${resultsData.bestStreak}&avg=${resultsData.avgResponseMs}&mode=${encodeURIComponent(resultsData.mode)}&deck=${encodeURIComponent(resultsData.deckId)}`;
+    const title = "Recall Rush — Shared Run";
+    const description = `Score: ${resultsData.score} • Accuracy: ${resultsData.accuracy}% • Best streak: ${resultsData.bestStreak}`;
+
+    // Set or update meta tags (idempotent)
+    const setMeta = (property: string, content: string) => {
+      let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.setAttribute("property", property);
+        document.head.appendChild(meta);
+      }
+      meta.content = content;
+    };
+
+    setMeta("og:title", title);
+    setMeta("og:description", description);
+    setMeta("og:image", ogImageUrl);
+    setMeta("og:type", "website");
+    setMeta("twitter:card", "summary_large_image");
+    setMeta("twitter:title", title);
+    setMeta("twitter:description", description);
+    setMeta("twitter:image", ogImageUrl);
+
+    document.title = title;
+  }, [resultsData]);
 
   if (!resultsData) {
     return (
