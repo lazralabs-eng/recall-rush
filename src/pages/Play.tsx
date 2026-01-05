@@ -330,9 +330,9 @@ export default function Play() {
 
                 <button
                   onClick={session.start}
-                  className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition"
+                  className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
                 >
-                  Play Again
+                  Beat this score
                 </button>
               </>
             )}
@@ -519,9 +519,9 @@ export default function Play() {
 
             <button
               onClick={session.start}
-              className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition"
+              className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
             >
-              Play Again
+              Beat this score
             </button>
           </div>
         )}
