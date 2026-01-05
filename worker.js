@@ -6,8 +6,8 @@ export default {
     // Try to serve the static asset
     const response = await env.ASSETS.fetch(request);
 
-    // If 404, serve index.html for client-side routing
-    if (response.status === 404) {
+    // If 404 and it's not a file request, serve index.html for client-side routing
+    if (response.status === 404 && !url.pathname.includes('.')) {
       const indexUrl = new URL('/index.html', url.origin);
       return env.ASSETS.fetch(new Request(indexUrl, request));
     }
