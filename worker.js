@@ -1,17 +1,20 @@
 // SPA fallback handler for Workers static assets
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
 
-    // Try to serve the static asset
-    const response = await env.ASSETS.fetch(request);
+      // Serve static assets
+      let response = await env.ASSETS.fetch(request);
 
-    // If 404 and it's not a file request, serve index.html for client-side routing
-    if (response.status === 404 && !url.pathname.includes('.')) {
-      const indexUrl = new URL('/index.html', url.origin);
-      return env.ASSETS.fetch(new Request(indexUrl, request));
+      // If 404 on non-file paths, serve index.html for client-side routing
+      if (response.status === 404 && !url.pathname.match(/\.[a-zA-Z0-9]+$/)) {
+        response = await env.ASSETS.fetch(new URL('/index.html', url.origin));
+      }
+
+      return response;
+    } catch (err) {
+      return new Response(`Worker error: ${err.message}`, { status: 500 });
     }
-
-    return response;
   }
 }
