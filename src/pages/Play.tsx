@@ -16,17 +16,13 @@ type RunData = {
 };
 
 function encodeRunData(data: RunData): string {
-  // Use short keys to reduce URL length
-  const compact = {
-    s: data.score,
-    a: data.accuracy,
-    c: data.correct,
-    ans: data.answered,
-    bs: data.bestStreak,
-    ar: data.avgResponseMs,
-    m: data.mode,
-    d: data.deckId,
-  };
+  // Ultra-compact: only essential stats
+  const compact = [
+    data.score,
+    data.accuracy,
+    data.bestStreak,
+    data.avgResponseMs
+  ];
   return btoa(JSON.stringify(compact));
 }
 
@@ -35,7 +31,23 @@ function decodeRunData(encoded: string): RunData | null {
     const json = atob(encoded);
     const parsed = JSON.parse(json);
 
-    // Handle new compact format
+    // Handle ultra-compact array format [score, accuracy, streak, avgMs]
+    if (Array.isArray(parsed)) {
+      return {
+        runId: "",
+        score: parsed[0] || 0,
+        accuracy: parsed[1] || 0,
+        correct: 0,
+        answered: 0,
+        bestStreak: parsed[2] || 0,
+        avgResponseMs: parsed[3] || 0,
+        mode: "sprint",
+        deckId: "nfl-playoffs",
+        timestamp: 0,
+      };
+    }
+
+    // Handle compact object format {s, a, c, ans, bs, ar, m, d}
     if (parsed.s !== undefined) {
       return {
         runId: "",

@@ -38,13 +38,29 @@ function decodeRunData(encoded: string): RunData | null {
     // Try to parse directly or decode URI first
     const d = decoded.trim();
     let parsed;
-    if (d.startsWith("{")) {
+    if (d.startsWith("{") || d.startsWith("[")) {
       parsed = JSON.parse(d);
     } else {
       parsed = JSON.parse(decodeURIComponent(d));
     }
 
-    // Handle new compact format (short keys)
+    // Handle ultra-compact array format [score, accuracy, streak, avgMs]
+    if (Array.isArray(parsed)) {
+      return {
+        runId: "",
+        score: Number(parsed[0]) || 0,
+        accuracy: Number(parsed[1]) || 0,
+        correct: 0,
+        answered: 0,
+        bestStreak: Number(parsed[2]) || 0,
+        avgResponseMs: Number(parsed[3]) || 0,
+        mode: "sprint",
+        deckId: "nfl-playoffs",
+        timestamp: 0,
+      };
+    }
+
+    // Handle compact object format (short keys)
     if (parsed.s !== undefined) {
       return {
         runId: "",
