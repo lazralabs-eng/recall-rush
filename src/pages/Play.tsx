@@ -16,14 +16,43 @@ type RunData = {
 };
 
 function encodeRunData(data: RunData): string {
-  const json = JSON.stringify(data);
-  return btoa(json);
+  // Use short keys to reduce URL length
+  const compact = {
+    s: data.score,
+    a: data.accuracy,
+    c: data.correct,
+    ans: data.answered,
+    bs: data.bestStreak,
+    ar: data.avgResponseMs,
+    m: data.mode,
+    d: data.deckId,
+  };
+  return btoa(JSON.stringify(compact));
 }
 
 function decodeRunData(encoded: string): RunData | null {
   try {
     const json = atob(encoded);
-    return JSON.parse(json);
+    const parsed = JSON.parse(json);
+
+    // Handle new compact format
+    if (parsed.s !== undefined) {
+      return {
+        runId: "",
+        score: parsed.s,
+        accuracy: parsed.a,
+        correct: parsed.c,
+        answered: parsed.ans,
+        bestStreak: parsed.bs,
+        avgResponseMs: parsed.ar,
+        mode: parsed.m,
+        deckId: parsed.d,
+        timestamp: 0,
+      };
+    }
+
+    // Handle old format for backwards compatibility
+    return parsed;
   } catch (err) {
     console.error("Failed to decode run data:", err);
     return null;

@@ -44,7 +44,23 @@ function decodeRunData(encoded: string): RunData | null {
       parsed = JSON.parse(decodeURIComponent(d));
     }
 
-    // Validate required string fields
+    // Handle new compact format (short keys)
+    if (parsed.s !== undefined) {
+      return {
+        runId: "",
+        score: Number(parsed.s) || 0,
+        accuracy: Number(parsed.a) || 0,
+        correct: Number(parsed.c) || 0,
+        answered: Number(parsed.ans) || 0,
+        bestStreak: Number(parsed.bs) || 0,
+        avgResponseMs: Number(parsed.ar) || 0,
+        mode: String(parsed.m || "sprint"),
+        deckId: String(parsed.d || "demo"),
+        timestamp: 0,
+      };
+    }
+
+    // Handle old format - validate required string fields
     if (
       typeof parsed.runId !== "string" ||
       typeof parsed.deckId !== "string" ||
