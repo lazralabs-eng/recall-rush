@@ -11,6 +11,7 @@ import {
   type Card,
   type Mode,
 } from "./engine";
+import type { AnswerEvent } from "./shareGrid";
 
 type Phase = "ready" | "playing" | "reveal" | "finished";
 
@@ -38,6 +39,7 @@ export function usePlaySession(deckId: string, mode: Mode) {
   const [lastChoiceIndex, setLastChoiceIndex] = useState<number | null>(null);
   const [runId, setRunId] = useState<string>("");
   const [finishedAt, setFinishedAt] = useState<number>(0);
+  const [answerEvents, setAnswerEvents] = useState<AnswerEvent[]>([]);
 
   const startedAtRef = useRef<number>(0);
   const cardStartedAtRef = useRef<number>(0);
@@ -75,6 +77,7 @@ export function usePlaySession(deckId: string, mode: Mode) {
     setFeedbackTick(0);
     setLastChoiceIndex(null);
     setFinishedAt(0);
+    setAnswerEvents([]);
     setRunId(`${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
     stopLoop();
@@ -110,6 +113,12 @@ export function usePlaySession(deckId: string, mode: Mode) {
       answered: st.answered + 1,
     }));
 
+    // Track answer event for share grid
+    setAnswerEvents((prev) => [
+      ...prev,
+      { correct: false, responseMs: cfg.perCardMs, timeout: true },
+    ]);
+
     clearRevealTimer();
     revealTimerRef.current = window.setTimeout(() => {
       if (mode === "sudden") {
@@ -132,6 +141,9 @@ export function usePlaySession(deckId: string, mode: Mode) {
 
     const responseMs = Date.now() - cardStartedAtRef.current;
     const correct = isChoiceCorrect(selectedIndex, current.correctIndex);
+
+    // Track answer event for share grid
+    setAnswerEvents((prev) => [...prev, { correct, responseMs }]);
 
     if (correct) {
       setFeedback("correct");
@@ -233,6 +245,7 @@ export function usePlaySession(deckId: string, mode: Mode) {
     lastChoiceIndex,
     runId,
     finishedAt,
+    answerEvents,
   };
 }
 

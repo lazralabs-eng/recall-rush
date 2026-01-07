@@ -1,6 +1,7 @@
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { usePlaySession } from "../features/play/usePlaySession";
+import { tileForEvent, emojiPyramid, type Tile } from "../features/play/shareGrid";
 
 type RunData = {
   runId: string;
@@ -13,17 +14,25 @@ type RunData = {
   mode: string;
   deckId: string;
   timestamp: number;
+  tiles: Tile[];
+  maxScore: number;
+  deckLabel?: string;
+  fastThresholdMs?: number;
 };
 
 function encodeRunData(data: RunData): string {
-  // Ultra-compact: stats + mode + deck
+  // Compact: stats + mode + deck + tiles
   const compact = [
     data.score,
     data.accuracy,
     data.bestStreak,
     data.avgResponseMs,
     data.mode,
-    data.deckId
+    data.deckId,
+    data.tiles,
+    data.maxScore,
+    data.deckLabel,
+    data.fastThresholdMs,
   ];
   return btoa(JSON.stringify(compact));
 }
@@ -33,8 +42,10 @@ function decodeRunData(encoded: string): RunData | null {
     const json = atob(encoded);
     const parsed = JSON.parse(json);
 
-    // Handle ultra-compact array format [score, accuracy, streak, avgMs, mode?, deck?]
+    // Handle array format [score, accuracy, streak, avgMs, mode?, deck?, tiles?, maxScore?, deckLabel?, fastThresholdMs?]
     if (Array.isArray(parsed)) {
+      const tiles = parsed[6] && Array.isArray(parsed[6]) ? parsed[6] : [];
+
       return {
         runId: "",
         score: parsed[0] || 0,
@@ -46,6 +57,10 @@ function decodeRunData(encoded: string): RunData | null {
         mode: parsed[4] || "sprint",
         deckId: parsed[5] || "nfl-playoffs",
         timestamp: 0,
+        tiles,
+        maxScore: parsed[7] || 450,
+        deckLabel: parsed[8],
+        fastThresholdMs: parsed[9],
       };
     }
 
@@ -62,11 +77,19 @@ function decodeRunData(encoded: string): RunData | null {
         mode: parsed.m,
         deckId: parsed.d,
         timestamp: 0,
+        tiles: parsed.tiles || [],
+        maxScore: parsed.maxScore || 450,
+        deckLabel: parsed.deckLabel,
+        fastThresholdMs: parsed.fastThresholdMs,
       };
     }
 
     // Handle old format for backwards compatibility
-    return parsed;
+    return {
+      ...parsed,
+      tiles: parsed.tiles || [],
+      maxScore: parsed.maxScore || 450,
+    };
   } catch (err) {
     console.error("Failed to decode run data:", err);
     return null;
@@ -76,26 +99,29 @@ function decodeRunData(encoded: string): RunData | null {
 function buildShareText({
   mode,
   deckId,
+  deckLabel,
   score,
-  stats,
-  bestStreak,
+  maxScore,
+  tiles,
+  resultsLink,
 }: {
   mode: string;
   deckId: string;
+  deckLabel: string;
   score: number;
-  stats: { correct: number; answered: number; avgResponseMs: number };
-  bestStreak: number;
+  maxScore: number;
+  tiles: Tile[];
+  resultsLink: string;
 }) {
-  const acc =
-    stats.answered > 0 ? Math.round((stats.correct / stats.answered) * 100) : 0;
   const modeLabel = mode === "sudden" ? "Sudden Death" : "Sprint";
+  const pyramid = emojiPyramid(tiles);
 
-  return `Recall Rush — ${modeLabel}
-Score: ${score}
-Accuracy: ${acc}% (${stats.correct}/${stats.answered})
-Best streak: ${bestStreak}
-Avg: ${stats.avgResponseMs}ms
-Deck: ${deckId}`;
+  return `Recall Rush — ${deckLabel} (${modeLabel})
+${score}/${maxScore}
+
+${pyramid}
+
+🔗 ${resultsLink}`;
 }
 
 export default function Play() {
@@ -148,32 +174,31 @@ export default function Play() {
           mode,
           deckId,
           timestamp: session.finishedAt,
+          tiles: session.answerEvents.map((evt) =>
+            tileForEvent(evt, session.cfg.perCardMs * 0.9)
+          ),
+          maxScore: 450,
         }
       : null);
 
   async function handleShare() {
-    const text = buildShareText({
-      mode,
-      deckId,
-      score: session.scoreState.score,
-      stats: session.stats,
-      bestStreak: session.scoreState.bestStreak,
-    });
-
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch (err) {
-      console.error("Clipboard failed:", err);
-    }
-  }
-
-  async function handleShareLink() {
     const accuracy =
       session.stats.answered > 0
         ? Math.round((session.stats.correct / session.stats.answered) * 100)
         : 0;
+
+    // Generate tiles from answer events
+    const tiles = session.answerEvents.map((evt) =>
+      tileForEvent(evt, session.cfg.perCardMs * 0.9)
+    );
+
+    // Format deck label
+    const deckLabel =
+      deckId === "nfl-playoffs"
+        ? "NFL Playoffs"
+        : deckId === "demo"
+        ? "Demo"
+        : deckId.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
     const runData: RunData = {
       runId: session.runId,
@@ -186,6 +211,77 @@ export default function Play() {
       mode,
       deckId,
       timestamp: Date.now(),
+      tiles,
+      maxScore: 450,
+      deckLabel,
+      fastThresholdMs: Math.round(session.cfg.perCardMs * 0.9),
+    };
+
+    const encoded = encodeRunData(runData);
+    const base = window.location.origin;
+    const resultsLink = `${base}/results?r=${encoded}`;
+
+    const text = buildShareText({
+      mode,
+      deckId,
+      deckLabel,
+      score: session.scoreState.score,
+      maxScore: 450,
+      tiles,
+      resultsLink,
+    });
+
+    try {
+      // Try native share first (mobile)
+      if (navigator.share) {
+        await navigator.share({ text });
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } else {
+        // Fall back to clipboard
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }
+    } catch (err) {
+      console.error("Share/clipboard failed:", err);
+    }
+  }
+
+  async function handleShareLink() {
+    const accuracy =
+      session.stats.answered > 0
+        ? Math.round((session.stats.correct / session.stats.answered) * 100)
+        : 0;
+
+    // Generate tiles from answer events
+    const tiles = session.answerEvents.map((evt) =>
+      tileForEvent(evt, session.cfg.perCardMs * 0.9)
+    );
+
+    // Format deck label
+    const deckLabel =
+      deckId === "nfl-playoffs"
+        ? "NFL Playoffs"
+        : deckId === "demo"
+        ? "Demo"
+        : deckId.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+
+    const runData: RunData = {
+      runId: session.runId,
+      score: session.scoreState.score,
+      accuracy,
+      correct: session.stats.correct,
+      answered: session.stats.answered,
+      bestStreak: session.scoreState.bestStreak,
+      avgResponseMs: session.stats.avgResponseMs,
+      mode,
+      deckId,
+      timestamp: Date.now(),
+      tiles,
+      maxScore: 450, // Perfect score for 25 cards
+      deckLabel,
+      fastThresholdMs: Math.round(session.cfg.perCardMs * 0.9),
     };
 
     const encoded = encodeRunData(runData);
@@ -307,6 +403,17 @@ export default function Play() {
                 <span className="font-semibold">{resultsData.answered}</span>
               </div>
             </div>
+
+            {resultsData.tiles && resultsData.tiles.length > 0 && (
+              <div className="p-4 rounded bg-gray-50 border">
+                <div className="text-center mb-2 font-semibold">
+                  {resultsData.score}/{resultsData.maxScore || 450}
+                </div>
+                <div className="text-center font-mono text-2xl leading-relaxed whitespace-pre">
+                  {emojiPyramid(resultsData.tiles)}
+                </div>
+              </div>
+            )}
 
             <div className="text-xs opacity-70 text-center">
               Mode: {resultsData.mode === "sudden" ? "Sudden Death" : "Sprint"}{" "}
@@ -498,6 +605,21 @@ export default function Play() {
                 <span className="font-semibold">{session.stats.timeout}</span>
               </div>
             </div>
+
+            {session.answerEvents.length > 0 && (
+              <div className="p-4 rounded bg-gray-50 border">
+                <div className="text-center mb-2 font-semibold">
+                  {session.scoreState.score}/450
+                </div>
+                <div className="text-center font-mono text-2xl leading-relaxed whitespace-pre">
+                  {emojiPyramid(
+                    session.answerEvents.map((evt) =>
+                      tileForEvent(evt, session.cfg.perCardMs * 0.9)
+                    )
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="text-xs opacity-70 text-center">
               Mode: {mode === "sudden" ? "Sudden Death" : "Sprint"} • Deck:{" "}
