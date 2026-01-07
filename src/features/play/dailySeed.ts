@@ -2,8 +2,18 @@
 
 /**
  * Get current UTC day as "YYYY-MM-DD"
+ * Dev override: ?day=YYYY-MM-DD
  */
 export function getUtcDayKey(): string {
+  // Dev override from URL
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const override = params.get("day");
+    if (override && /^\d{4}-\d{2}-\d{2}$/.test(override)) {
+      return override;
+    }
+  }
+
   const now = new Date();
   const year = now.getUTCFullYear();
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
@@ -26,10 +36,48 @@ export function hashStringToSeed(str: string): number {
 
 /**
  * Get daily seed for a deck (deterministic per day)
+ * Dev override: ?seed=NUMBER
  */
 export function dailySeed(deckId: string): number {
+  // Dev override from URL
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const override = params.get("seed");
+    if (override) {
+      const seedNum = parseInt(override, 10);
+      if (!isNaN(seedNum)) {
+        return seedNum;
+      }
+    }
+  }
+
   const dayKey = getUtcDayKey();
   return hashStringToSeed(`${deckId}|${dayKey}`);
+}
+
+/**
+ * Check if dev overrides are active
+ */
+export function hasDevOverrides(): boolean {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.has("day") || params.has("seed");
+}
+
+/**
+ * Get dev override info for display
+ */
+export function getDevOverrideInfo(): string | null {
+  if (!hasDevOverrides()) return null;
+  const params = new URLSearchParams(window.location.search);
+  const day = params.get("day");
+  const seed = params.get("seed");
+
+  const parts = [];
+  if (day) parts.push(`day=${day}`);
+  if (seed) parts.push(`seed=${seed}`);
+
+  return parts.length > 0 ? `Dev: ${parts.join(", ")}` : null;
 }
 
 /**

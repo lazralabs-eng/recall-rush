@@ -19,7 +19,7 @@ function Home() {
           Play Today's Challenge
         </Link>
         <p className="mt-2 text-sm opacity-60 text-center">
-          NFL Playoffs • Sprint Mode • New deck every UTC day
+          NFL Playoffs • Sprint Mode
         </p>
       </div>
 

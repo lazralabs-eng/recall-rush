@@ -1,8 +1,9 @@
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePlaySession } from "../features/play/usePlaySession";
 import { tileForEvent, emojiGrid, type Tile } from "../features/play/shareGrid";
 import { RunGrid } from "../components/RunGrid";
+import { getDevOverrideInfo } from "../features/play/dailySeed";
 
 type RunData = {
   runId: string;
@@ -125,7 +126,7 @@ ${grid}`;
 
 export default function Play() {
   const { deckId = "nfl-playoffs" } = useParams();
-  const [sp] = useSearchParams();
+  const [sp, setSp] = useSearchParams();
   // Force sprint mode - ignore any mode parameter
   const mode = "sprint" as const;
 
@@ -133,10 +134,32 @@ export default function Play() {
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
+  // Handle reset parameter to clear localStorage locks
+  useEffect(() => {
+    const resetParam = sp.get("reset");
+    if (resetParam === "1") {
+      const lockKey = `rr:played:${deckId}:${session.dayKey}`;
+      const lastRunKey = `rr:lastRun:${deckId}:${session.dayKey}`;
+      localStorage.removeItem(lockKey);
+      localStorage.removeItem(lastRunKey);
+
+      // Remove reset parameter from URL
+      const newParams = new URLSearchParams(sp);
+      newParams.delete("reset");
+      setSp(newParams, { replace: true });
+
+      // Force reload
+      window.location.reload();
+    }
+  }, [sp, setSp, deckId, session.dayKey]);
+
   // Parse shared run from URL parameter
   const runParam = sp.get("r");
   const sharedRun = runParam ? decodeRunData(runParam) : null;
   const [dismissed, setDismissed] = useState(false);
+
+  // Get dev override info
+  const devInfo = getDevOverrideInfo();
 
   const secs = Math.ceil(session.remainingMs / 1000);
 
@@ -329,25 +352,49 @@ export default function Play() {
         </Link>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-sm opacity-70">
-            Daily Sprint{session.dayKey && ` • ${session.dayKey}`}
-          </div>
-          <div className="text-2xl font-bold">⏱️ {secs}s</div>
+      {devInfo && (
+        <div className="mb-2 text-xs bg-yellow-100 border border-yellow-300 rounded px-2 py-1">
+          {devInfo}
         </div>
+      )}
 
-        <div className="text-right">
-          <div className="text-sm opacity-70">Score</div>
-          <div className="text-2xl font-bold">{session.scoreState.score}</div>
-          <div className="text-xs opacity-70">
-            Streak {session.scoreState.streak} (best{" "}
-            {session.scoreState.bestStreak})
-          </div>
+      {session.phase === "locked" && !sharedRun ? (
+        <div className="rounded border p-6 text-center">
+          <h2 className="text-2xl font-bold mb-3">Thanks for playing today!</h2>
+          <p className="text-lg opacity-80 mb-6">
+            Come back tomorrow for a new challenge.
+          </p>
+          <p className="text-sm opacity-60 mb-4">
+            Daily Sprint • {session.dayKey}
+          </p>
+          <Link
+            to="/"
+            className="inline-block px-6 py-3 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
+          >
+            Back to Home
+          </Link>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm opacity-70">
+                Daily Sprint{session.dayKey && ` • ${session.dayKey}`}
+              </div>
+              <div className="text-2xl font-bold">⏱️ {secs}s</div>
+            </div>
 
-      <div className="mt-6 rounded border p-4">
+            <div className="text-right">
+              <div className="text-sm opacity-70">Score</div>
+              <div className="text-2xl font-bold">{session.scoreState.score}</div>
+              <div className="text-xs opacity-70">
+                Streak {session.scoreState.streak} (best{" "}
+                {session.scoreState.bestStreak})
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded border p-4">
         {resultsData ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -431,14 +478,9 @@ export default function Play() {
 
                 <button
                   onClick={session.start}
-                  disabled={session.isLocked}
-                  className={`w-full px-4 py-2 rounded transition font-semibold ${
-                    session.isLocked
-                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                      : "bg-black text-white hover:bg-gray-800"
-                  }`}
+                  className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
                 >
-                  {session.isLocked ? "Come back tomorrow ⏰" : "Play Again"}
+                  Play Again
                 </button>
               </>
             )}
@@ -638,18 +680,15 @@ export default function Play() {
 
             <button
               onClick={session.start}
-              disabled={session.isLocked}
-              className={`w-full px-4 py-2 rounded transition font-semibold ${
-                session.isLocked
-                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                  : "bg-black text-white hover:bg-gray-800"
-              }`}
+              className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
             >
-              {session.isLocked ? "Come back tomorrow ⏰" : "Play Again"}
+              Play Again
             </button>
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }
