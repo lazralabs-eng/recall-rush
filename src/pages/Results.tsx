@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
-import { emojiGrid, type Tile } from "../features/play/shareGrid";
+import { type Tile } from "../features/play/shareGrid";
+import { RunGrid } from "../components/RunGrid";
 
 // Cloudflare Worker endpoint for OG images
 const OG_BASE = "https://recall-rush-og-worker.christopher-037.workers.dev";
@@ -129,11 +130,14 @@ export default function Results() {
 
   // Update OG meta tags for social sharing
   useEffect(() => {
-    if (!resultsData) return;
+    if (!resultsData || !runParam) return;
 
-    const ogImageUrl = `${OG_BASE}/og?score=${resultsData.score}&acc=${resultsData.accuracy}&streak=${resultsData.bestStreak}&avg=${resultsData.avgResponseMs}&mode=${encodeURIComponent(resultsData.mode)}&deck=${encodeURIComponent(resultsData.deckId)}`;
-    const title = "Recall Rush — Shared Run";
-    const description = `Score: ${resultsData.score} • Accuracy: ${resultsData.accuracy}% • Best streak: ${resultsData.bestStreak}`;
+    const ogImageUrl = `${OG_BASE}/?r=${encodeURIComponent(runParam)}`;
+    const modeLabel = resultsData.mode === 'sudden' ? 'Sudden Death' : 'Sprint';
+    const deckLabel = resultsData.deckLabel || resultsData.deckId;
+    const title = `Recall Rush — ${modeLabel} (${deckLabel})`;
+    const description = `${resultsData.score}/${resultsData.maxScore || 450} • ${resultsData.accuracy}% accuracy • Best streak: ${resultsData.bestStreak}`;
+    const canonicalUrl = `${window.location.origin}/results?r=${encodeURIComponent(runParam)}`;
 
     // Set or update meta tags (idempotent)
     const setMeta = (property: string, content: string) => {
@@ -149,6 +153,7 @@ export default function Results() {
     setMeta("og:title", title);
     setMeta("og:description", description);
     setMeta("og:image", ogImageUrl);
+    setMeta("og:url", canonicalUrl);
     setMeta("og:type", "website");
     setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", title);
@@ -156,7 +161,7 @@ export default function Results() {
     setMeta("twitter:image", ogImageUrl);
 
     document.title = title;
-  }, [resultsData]);
+  }, [resultsData, runParam]);
 
   if (!resultsData) {
     return (
@@ -234,8 +239,8 @@ export default function Results() {
               <div className="text-center mb-2 font-semibold">
                 {resultsData.score}/{resultsData.maxScore || 450}
               </div>
-              <div className="text-center font-mono text-2xl leading-relaxed whitespace-pre">
-                {emojiGrid(resultsData.tiles, 10)}
+              <div className="py-2">
+                <RunGrid pattern={resultsData.tiles} size="sm" />
               </div>
             </div>
           )}

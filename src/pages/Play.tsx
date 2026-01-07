@@ -2,6 +2,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { usePlaySession } from "../features/play/usePlaySession";
 import { tileForEvent, emojiGrid, type Tile } from "../features/play/shareGrid";
+import { RunGrid } from "../components/RunGrid";
 
 type RunData = {
   runId: string;
@@ -395,8 +396,8 @@ export default function Play() {
                 <div className="text-center mb-2 font-semibold">
                   {resultsData.score}/{resultsData.maxScore || 450}
                 </div>
-                <div className="text-center font-mono text-2xl leading-relaxed whitespace-pre">
-                  {emojiGrid(resultsData.tiles, 10)}
+                <div className="py-2">
+                  <RunGrid pattern={resultsData.tiles} size="lg" />
                 </div>
               </div>
             )}
@@ -597,11 +598,11 @@ export default function Play() {
                 <div className="text-center mb-2 font-semibold">
                   {session.scoreState.score}/450
                 </div>
-                <div className="text-center font-mono text-2xl leading-relaxed whitespace-pre">
-                  {emojiGrid(
-                    session.answerEvents.map((evt) => tileForEvent(evt)),
-                    10
-                  )}
+                <div className="py-2">
+                  <RunGrid
+                    pattern={session.answerEvents.map((evt) => tileForEvent(evt))}
+                    size="lg"
+                  />
                 </div>
               </div>
             )}
