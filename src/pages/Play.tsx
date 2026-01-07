@@ -99,24 +99,20 @@ function decodeRunData(encoded: string): RunData | null {
 }
 
 function buildShareData({
-  mode,
-  deckLabel,
   score,
   maxScore,
   tiles,
   resultsLink,
 }: {
-  mode: string;
-  deckLabel: string;
   score: number;
   maxScore: number;
   tiles: Tile[];
   resultsLink: string;
 }) {
-  const modeLabel = mode === "sudden" ? "Sudden Death" : "Sprint";
-  const grid = emojiGrid(tiles, 10);
+  // Use 5 tiles per row for better mobile/desktop compatibility
+  const grid = emojiGrid(tiles, 5);
 
-  const title = `Recall Rush — ${deckLabel} (${modeLabel})`;
+  const title = `Recall Rush — Daily Sprint`;
   const text = `${score}/${maxScore}
 
 ${grid}`;
@@ -240,8 +236,6 @@ export default function Play() {
     const resultsLink = `${base}/results?r=${encoded}`;
 
     const shareData = buildShareData({
-      mode,
-      deckLabel,
       score: session.scoreState.score,
       maxScore: 450,
       tiles,
@@ -476,12 +470,19 @@ export default function Play() {
                   </button>
                 </div>
 
-                <button
-                  onClick={session.start}
-                  className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
-                >
-                  Play Again
-                </button>
+                {!session.isLocked && (
+                  <button
+                    onClick={session.start}
+                    className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
+                  >
+                    Play Again
+                  </button>
+                )}
+                {session.isLocked && (
+                  <div className="text-center py-3 text-sm opacity-70">
+                    Thanks for playing! Come back tomorrow for a new challenge.
+                  </div>
+                )}
               </>
             )}
 
@@ -678,12 +679,19 @@ export default function Play() {
               </button>
             </div>
 
-            <button
-              onClick={session.start}
-              className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
-            >
-              Play Again
-            </button>
+            {!session.isLocked && (
+              <button
+                onClick={session.start}
+                className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
+              >
+                Play Again
+              </button>
+            )}
+            {session.isLocked && (
+              <div className="text-center py-3 text-sm opacity-70">
+                Thanks for playing! Come back tomorrow for a new challenge.
+              </div>
+            )}
           </div>
         )}
       </div>

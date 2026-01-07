@@ -26,9 +26,11 @@ export function usePlaySession(deckId: string, mode: Mode) {
   // Check if already played today
   const lockKey = `rr:played:${deckId}:${dayKey}`;
   const lastRunKey = `rr:lastRun:${deckId}:${dayKey}`;
-  const isLocked = useMemo(() => {
+
+  // Make isLocked a state variable so it can update after finishing
+  const [isLocked, setIsLocked] = useState(() => {
     return localStorage.getItem(lockKey) === "1";
-  }, [lockKey]);
+  });
 
   const [phase, setPhase] = useState<Phase>(isLocked ? "locked" : "ready");
 
@@ -79,6 +81,7 @@ export function usePlaySession(deckId: string, mode: Mode) {
 
     // Lock the deck for today
     localStorage.setItem(lockKey, "1");
+    setIsLocked(true); // Update state
 
     // Store last run summary
     const lastRun = {
@@ -99,6 +102,12 @@ export function usePlaySession(deckId: string, mode: Mode) {
   }
 
   function start() {
+    // Don't allow starting if locked
+    if (isLocked) {
+      setPhase("locked");
+      return;
+    }
+
     setPhase("playing");
     setIndex(0);
     setScoreState(initialScoreState());
@@ -108,7 +117,7 @@ export function usePlaySession(deckId: string, mode: Mode) {
     setLastChoiceIndex(null);
     setFinishedAt(0);
     setAnswerEvents([]);
-    setRunId(`${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+    setRunId(`${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
 
     stopLoop();
     clearRevealTimer();
