@@ -13,6 +13,7 @@ type RunData = {
   tiles: Tile[];
   maxScore: number;
   deckLabel?: string;
+  dayKey?: string;
 };
 
 function decodeRunData(encoded: string): RunData | null {
@@ -27,11 +28,12 @@ function decodeRunData(encoded: string): RunData | null {
         accuracy: parsed[1] || 0,
         bestStreak: parsed[2] || 0,
         avgResponseMs: parsed[3] || 0,
-        mode: parsed[4] || "sprint",
+        mode: "sprint", // Always sprint
         deckId: parsed[5] || "nfl-playoffs",
         tiles,
         maxScore: parsed[7] || 450,
         deckLabel: parsed[8],
+        dayKey: parsed[9],
       };
     }
 
@@ -72,9 +74,9 @@ function isBot(userAgent: string): boolean {
 }
 
 function generateBotHTML(runData: RunData, runParam: string, origin: string): string {
-  const modeLabel = runData.mode === 'sudden' ? 'Sudden Death' : 'Sprint';
   const deckLabel = runData.deckLabel || runData.deckId;
-  const title = `Recall Rush — ${modeLabel} (${deckLabel})`;
+  const dayInfo = runData.dayKey ? ` • ${runData.dayKey}` : '';
+  const title = `Recall Rush — Daily Sprint${dayInfo}`;
   const description = `${runData.score}/${runData.maxScore || 450} • ${runData.accuracy}% accuracy • Best streak: ${runData.bestStreak}`;
   const canonicalUrl = `${origin}/results?r=${encodeURIComponent(runParam)}`;
   const ogImageUrl = `https://recall-rush-og-worker.christopher-037.workers.dev/?r=${encodeURIComponent(runParam)}`;

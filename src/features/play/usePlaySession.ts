@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   configFor,
-  getDeck,
+  getDailyShuffledDeck,
   initialScoreState,
   initialStats,
   isChoiceCorrect,
@@ -12,14 +12,25 @@ import {
   type Mode,
 } from "./engine";
 import type { AnswerEvent } from "./shareGrid";
+import { getUtcDayKey } from "./dailySeed";
 
-type Phase = "ready" | "playing" | "reveal" | "finished";
+type Phase = "ready" | "playing" | "reveal" | "finished" | "locked";
 
 export function usePlaySession(deckId: string, mode: Mode) {
-  const cfg = useMemo(() => configFor(mode), [mode]);
-  const deck = useMemo(() => shuffle(getDeck(deckId)), [deckId]);
+  // Force sprint mode
+  const forcedMode: Mode = "sprint";
+  const cfg = useMemo(() => configFor(forcedMode), [forcedMode]);
+  const deck = useMemo(() => getDailyShuffledDeck(deckId), [deckId]);
+  const dayKey = useMemo(() => getUtcDayKey(), []);
 
-  const [phase, setPhase] = useState<Phase>("ready");
+  // Check if already played today
+  const lockKey = `rr:played:${deckId}:${dayKey}`;
+  const lastRunKey = `rr:lastRun:${deckId}:${dayKey}`;
+  const isLocked = useMemo(() => {
+    return localStorage.getItem(lockKey) === "1";
+  }, [lockKey]);
+
+  const [phase, setPhase] = useState<Phase>(isLocked ? "locked" : "ready");
 
   // total timer
   const [remainingMs, setRemainingMs] = useState(cfg.totalMs);
@@ -65,6 +76,25 @@ export function usePlaySession(deckId: string, mode: Mode) {
     setFinishedAt(Date.now());
     stopLoop();
     clearRevealTimer();
+
+    // Lock the deck for today
+    localStorage.setItem(lockKey, "1");
+
+    // Store last run summary
+    const lastRun = {
+      score: scoreState.score,
+      accuracy:
+        stats.answered > 0
+          ? Math.round((stats.correct / stats.answered) * 100)
+          : 0,
+      bestStreak: scoreState.bestStreak,
+      avgResponseMs: stats.avgResponseMs,
+      tiles: answerEvents.map(evt =>
+        evt.timeout ? "T" : evt.correct ? "G" : "R"
+      ),
+    };
+    localStorage.setItem(lastRunKey, JSON.stringify(lastRun));
+
     console.log("[RecallRush] finished:", reason);
   }
 
@@ -246,14 +276,7 @@ export function usePlaySession(deckId: string, mode: Mode) {
     runId,
     finishedAt,
     answerEvents,
+    dayKey,
+    isLocked,
   };
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }

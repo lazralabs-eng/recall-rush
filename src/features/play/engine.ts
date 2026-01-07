@@ -1,4 +1,5 @@
 import { applyScoreEvent, initialScoreState, type ScoreState } from "./scoring";
+import { dailySeed, seededShuffle, hashStringToSeed } from "./dailySeed";
 
 export type Mode = "sprint" | "sudden";
 
@@ -249,6 +250,36 @@ export function getDeck(deckId: string): Card[] {
     default:
       return getDemoDeck();
   }
+}
+
+/**
+ * Get deck with deterministic daily shuffle
+ * Cards are shuffled, and each card's choices are shuffled deterministically
+ */
+export function getDailyShuffledDeck(deckId: string): Card[] {
+  const baseDeck = getDeck(deckId);
+  const seed = dailySeed(deckId);
+
+  // Shuffle card order
+  const shuffledCards = seededShuffle(baseDeck, seed);
+
+  // For each card, shuffle its choices and remap correct index
+  return shuffledCards.map((card) => {
+    const cardSeed = seed + hashStringToSeed(card.id);
+    const correctAnswer = card.choices[card.correctIndex];
+
+    // Shuffle choices
+    const shuffledChoices = seededShuffle(card.choices, cardSeed);
+
+    // Find new index of correct answer
+    const newCorrectIndex = shuffledChoices.indexOf(correctAnswer);
+
+    return {
+      ...card,
+      choices: shuffledChoices,
+      correctIndex: newCorrectIndex,
+    };
+  });
 }
 
 export function isChoiceCorrect(

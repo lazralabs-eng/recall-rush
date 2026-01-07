@@ -20,6 +20,7 @@ type RunData = {
   tiles: Tile[];
   maxScore: number;
   deckLabel?: string;
+  dayKey?: string;
 };
 
 function decodeRunData(encoded: string): RunData | null {
@@ -49,7 +50,7 @@ function decodeRunData(encoded: string): RunData | null {
       parsed = JSON.parse(decodeURIComponent(d));
     }
 
-    // Handle ultra-compact array format [score, accuracy, streak, avgMs, mode?, deck?, tiles?, maxScore?, deckLabel?]
+    // Handle ultra-compact array format [score, accuracy, streak, avgMs, mode?, deck?, tiles?, maxScore?, deckLabel?, dayKey?]
     if (Array.isArray(parsed)) {
       const tiles = parsed[6] && Array.isArray(parsed[6]) ? parsed[6] : [];
 
@@ -61,12 +62,13 @@ function decodeRunData(encoded: string): RunData | null {
         answered: 0,
         bestStreak: Number(parsed[2]) || 0,
         avgResponseMs: Number(parsed[3]) || 0,
-        mode: String(parsed[4] || "sprint"),
+        mode: "sprint", // Always sprint
         deckId: String(parsed[5] || "nfl-playoffs"),
         timestamp: 0,
         tiles,
         maxScore: Number(parsed[7]) || 450,
         deckLabel: parsed[8],
+        dayKey: parsed[9],
       };
     }
 
@@ -80,12 +82,13 @@ function decodeRunData(encoded: string): RunData | null {
         answered: Number(parsed.ans) || 0,
         bestStreak: Number(parsed.bs) || 0,
         avgResponseMs: Number(parsed.ar) || 0,
-        mode: String(parsed.m || "sprint"),
+        mode: "sprint", // Always sprint
         deckId: String(parsed.d || "demo"),
         timestamp: 0,
         tiles: parsed.tiles || [],
         maxScore: Number(parsed.maxScore) || 450,
         deckLabel: parsed.deckLabel,
+        dayKey: parsed.dayKey,
       };
     }
 
@@ -103,7 +106,7 @@ function decodeRunData(encoded: string): RunData | null {
     const result: RunData = {
       runId: parsed.runId,
       deckId: parsed.deckId,
-      mode: parsed.mode,
+      mode: "sprint", // Always sprint
       score: Number(parsed.score) || 0,
       accuracy: Number(parsed.accuracy) || 0,
       correct: Number(parsed.correct) || 0,
@@ -114,6 +117,7 @@ function decodeRunData(encoded: string): RunData | null {
       tiles: parsed.tiles || [],
       maxScore: Number(parsed.maxScore) || 450,
       deckLabel: parsed.deckLabel,
+      dayKey: parsed.dayKey,
     };
 
     return result;
@@ -133,9 +137,9 @@ export default function Results() {
     if (!resultsData || !runParam) return;
 
     const ogImageUrl = `${OG_BASE}/?r=${encodeURIComponent(runParam)}`;
-    const modeLabel = resultsData.mode === 'sudden' ? 'Sudden Death' : 'Sprint';
     const deckLabel = resultsData.deckLabel || resultsData.deckId;
-    const title = `Recall Rush — ${modeLabel} (${deckLabel})`;
+    const dayInfo = resultsData.dayKey ? ` • ${resultsData.dayKey}` : '';
+    const title = `Recall Rush — Daily Sprint${dayInfo}`;
     const description = `${resultsData.score}/${resultsData.maxScore || 450} • ${resultsData.accuracy}% accuracy • Best streak: ${resultsData.bestStreak}`;
     const canonicalUrl = `${window.location.origin}/results?r=${encodeURIComponent(runParam)}`;
 
@@ -246,15 +250,14 @@ export default function Results() {
           )}
 
           <div className="text-xs opacity-70 text-center">
-            Mode: {resultsData.mode === "sudden" ? "Sudden Death" : "Sprint"} •
-            Deck: {resultsData.deckId}
+            Daily Sprint{resultsData.dayKey && ` • ${resultsData.dayKey}`}
           </div>
 
           <Link
-            to={`/play/${resultsData.deckId}?mode=${resultsData.mode}`}
+            to={`/play/${resultsData.deckId}`}
             className="block w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition text-center font-semibold"
           >
-            Beat this score
+            Try Today's Challenge
           </Link>
         </div>
       </div>

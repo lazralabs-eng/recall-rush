@@ -18,10 +18,11 @@ type RunData = {
   tiles: Tile[];
   maxScore: number;
   deckLabel?: string;
+  dayKey?: string;
 };
 
 function encodeRunData(data: RunData): string {
-  // Compact: stats + mode + deck + tiles
+  // Compact: stats + mode + deck + tiles + dayKey
   const compact = [
     data.score,
     data.accuracy,
@@ -32,6 +33,7 @@ function encodeRunData(data: RunData): string {
     data.tiles,
     data.maxScore,
     data.deckLabel,
+    data.dayKey,
   ];
   return btoa(JSON.stringify(compact));
 }
@@ -41,7 +43,7 @@ function decodeRunData(encoded: string): RunData | null {
     const json = atob(encoded);
     const parsed = JSON.parse(json);
 
-    // Handle array format [score, accuracy, streak, avgMs, mode?, deck?, tiles?, maxScore?, deckLabel?]
+    // Handle array format [score, accuracy, streak, avgMs, mode?, deck?, tiles?, maxScore?, deckLabel?, dayKey?]
     if (Array.isArray(parsed)) {
       const tiles = parsed[6] && Array.isArray(parsed[6]) ? parsed[6] : [];
 
@@ -53,12 +55,13 @@ function decodeRunData(encoded: string): RunData | null {
         answered: 0,
         bestStreak: parsed[2] || 0,
         avgResponseMs: parsed[3] || 0,
-        mode: parsed[4] || "sprint",
+        mode: "sprint", // Always sprint
         deckId: parsed[5] || "nfl-playoffs",
         timestamp: 0,
         tiles,
         maxScore: parsed[7] || 450,
         deckLabel: parsed[8],
+        dayKey: parsed[9],
       };
     }
 
@@ -72,12 +75,13 @@ function decodeRunData(encoded: string): RunData | null {
         answered: parsed.ans,
         bestStreak: parsed.bs,
         avgResponseMs: parsed.ar,
-        mode: parsed.m,
+        mode: "sprint", // Always sprint
         deckId: parsed.d,
         timestamp: 0,
         tiles: parsed.tiles || [],
         maxScore: parsed.maxScore || 450,
         deckLabel: parsed.deckLabel,
+        dayKey: parsed.dayKey,
       };
     }
 
@@ -120,11 +124,10 @@ ${grid}`;
 }
 
 export default function Play() {
-  const { deckId = "demo" } = useParams();
+  const { deckId = "nfl-playoffs" } = useParams();
   const [sp] = useSearchParams();
-  const mode = (sp.get("mode") === "sudden" ? "sudden" : "sprint") as
-    | "sprint"
-    | "sudden";
+  // Force sprint mode - ignore any mode parameter
+  const mode = "sprint" as const;
 
   const session = usePlaySession(deckId, mode);
   const [copied, setCopied] = useState(false);
@@ -171,6 +174,7 @@ export default function Play() {
           timestamp: session.finishedAt,
           tiles: session.answerEvents.map((evt) => tileForEvent(evt)),
           maxScore: 450,
+          dayKey: session.dayKey,
         }
       : null);
 
@@ -205,6 +209,7 @@ export default function Play() {
       tiles,
       maxScore: 450,
       deckLabel,
+      dayKey: session.dayKey,
     };
 
     const encoded = encodeRunData(runData);
@@ -269,6 +274,7 @@ export default function Play() {
       tiles,
       maxScore: 450, // Perfect score for 25 cards
       deckLabel,
+      dayKey: session.dayKey,
     };
 
     const encoded = encodeRunData(runData);
@@ -326,7 +332,7 @@ export default function Play() {
       <div className="flex items-center justify-between">
         <div>
           <div className="text-sm opacity-70">
-            Deck: {deckId} • Mode: {mode}
+            Daily Sprint{session.dayKey && ` • ${session.dayKey}`}
           </div>
           <div className="text-2xl font-bold">⏱️ {secs}s</div>
         </div>
@@ -403,8 +409,7 @@ export default function Play() {
             )}
 
             <div className="text-xs opacity-70 text-center">
-              Mode: {resultsData.mode === "sudden" ? "Sudden Death" : "Sprint"}{" "}
-              • Deck: {resultsData.deckId}
+              Daily Sprint{resultsData.dayKey && ` • ${resultsData.dayKey}`}
             </div>
 
             {!activeSharedRun && (
@@ -426,9 +431,14 @@ export default function Play() {
 
                 <button
                   onClick={session.start}
-                  className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
+                  disabled={session.isLocked}
+                  className={`w-full px-4 py-2 rounded transition font-semibold ${
+                    session.isLocked
+                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                      : "bg-black text-white hover:bg-gray-800"
+                  }`}
                 >
-                  Beat this score
+                  {session.isLocked ? "Come back tomorrow ⏰" : "Play Again"}
                 </button>
               </>
             )}
@@ -608,8 +618,8 @@ export default function Play() {
             )}
 
             <div className="text-xs opacity-70 text-center">
-              Mode: {mode === "sudden" ? "Sudden Death" : "Sprint"} • Deck:{" "}
-              {deckId}
+              Daily Sprint
+              {resultsData && "dayKey" in resultsData && resultsData.dayKey && ` • ${resultsData.dayKey}`}
             </div>
 
             <div className="flex gap-2">
@@ -629,9 +639,14 @@ export default function Play() {
 
             <button
               onClick={session.start}
-              className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
+              disabled={session.isLocked}
+              className={`w-full px-4 py-2 rounded transition font-semibold ${
+                session.isLocked
+                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                  : "bg-black text-white hover:bg-gray-800"
+              }`}
             >
-              Beat this score
+              {session.isLocked ? "Come back tomorrow ⏰" : "Play Again"}
             </button>
           </div>
         )}

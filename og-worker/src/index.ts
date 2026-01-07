@@ -101,7 +101,6 @@ export default {
           return new Response("Invalid run data", { status: 400 });
         }
 
-        const modeLabel = runData.mode === 'sudden' ? 'Sudden Death' : 'Sprint';
         const deckLabel = runData.deckLabel ||
           (runData.deckId === 'nfl-playoffs' ? 'NFL Playoffs' :
            runData.deckId === 'demo' ? 'Demo' :
@@ -112,7 +111,7 @@ export default {
         const html =
           `<div style="width:1200px;height:630px;background:#111;color:#fff;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;">` +
           `<div style="display:flex;flex-direction:column;align-items:center;margin-bottom:40px;">` +
-          `<div style="font-size:48px;font-weight:700;margin-bottom:16px;">Recall Rush — ${modeLabel}</div>` +
+          `<div style="font-size:48px;font-weight:700;margin-bottom:16px;">Recall Rush — Daily Sprint</div>` +
           `<div style="font-size:36px;opacity:0.8;">${deckLabel}</div>` +
           `</div>` +
           `<div style="margin-bottom:32px;">${gridHtml}</div>` +

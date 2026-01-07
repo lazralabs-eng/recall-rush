@@ -9,24 +9,18 @@ function Home() {
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold">Recall Rush</h1>
-      <p className="mt-2 opacity-80">Timed recall. Scoreboards. Share links.</p>
+      <p className="mt-2 opacity-80">Daily trivia sprint. One play per day.</p>
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6">
         <Link
-          className="px-4 py-2 rounded bg-black text-white"
-          to="/play/nfl-playoffs?mode=sprint"
+          className="block w-full px-6 py-3 rounded bg-black text-white text-center font-semibold hover:bg-gray-800 transition"
+          to="/play/nfl-playoffs"
         >
-          NFL Playoffs Sprint
+          Play Today's Challenge
         </Link>
-        <Link className="px-4 py-2 rounded border" to="/play/nfl-playoffs?mode=sudden">
-          NFL Sudden Death
-        </Link>
-      </div>
-
-      <div className="mt-4 text-sm opacity-60">
-        <Link to="/play/demo?mode=sprint" className="underline">
-          Try demo deck
-        </Link>
+        <p className="mt-2 text-sm opacity-60 text-center">
+          NFL Playoffs • Sprint Mode • New deck every UTC day
+        </p>
       </div>
 
       <div className="mt-8 pt-6 border-t text-xs text-center opacity-50">
