@@ -137,7 +137,6 @@ export default function Results() {
     if (!resultsData || !runParam) return;
 
     const ogImageUrl = `${OG_BASE}/?r=${encodeURIComponent(runParam)}`;
-    const deckLabel = resultsData.deckLabel || resultsData.deckId;
     const dayInfo = resultsData.dayKey ? ` • ${resultsData.dayKey}` : '';
     const title = `Recall Rush — Daily Sprint${dayInfo}`;
     const description = `${resultsData.score}/${resultsData.maxScore || 450} • ${resultsData.accuracy}% accuracy • Best streak: ${resultsData.bestStreak}`;

@@ -619,7 +619,6 @@ export default function Play() {
 
             <div className="text-xs opacity-70 text-center">
               Daily Sprint
-              {resultsData && "dayKey" in resultsData && resultsData.dayKey && ` • ${resultsData.dayKey}`}
             </div>
 
             <div className="flex gap-2">
