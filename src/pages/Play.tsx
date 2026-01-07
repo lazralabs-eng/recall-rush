@@ -16,12 +16,14 @@ type RunData = {
 };
 
 function encodeRunData(data: RunData): string {
-  // Ultra-compact: only essential stats
+  // Ultra-compact: stats + mode + deck
   const compact = [
     data.score,
     data.accuracy,
     data.bestStreak,
-    data.avgResponseMs
+    data.avgResponseMs,
+    data.mode,
+    data.deckId
   ];
   return btoa(JSON.stringify(compact));
 }
@@ -31,7 +33,7 @@ function decodeRunData(encoded: string): RunData | null {
     const json = atob(encoded);
     const parsed = JSON.parse(json);
 
-    // Handle ultra-compact array format [score, accuracy, streak, avgMs]
+    // Handle ultra-compact array format [score, accuracy, streak, avgMs, mode?, deck?]
     if (Array.isArray(parsed)) {
       return {
         runId: "",
@@ -41,8 +43,8 @@ function decodeRunData(encoded: string): RunData | null {
         answered: 0,
         bestStreak: parsed[2] || 0,
         avgResponseMs: parsed[3] || 0,
-        mode: "sprint",
-        deckId: "nfl-playoffs",
+        mode: parsed[4] || "sprint",
+        deckId: parsed[5] || "nfl-playoffs",
         timestamp: 0,
       };
     }

@@ -27,27 +27,42 @@ export default {
           const decoded = atob(runParam.replace(/-/g, '+').replace(/_/g, '/'));
           const parsed = JSON.parse(decoded);
 
-          let score, accuracy, streak, avgMs;
+          let score, accuracy, streak, avgMs, mode, deckId;
 
-          // Handle array format [score, accuracy, streak, avgMs]
+          // Handle array format [score, accuracy, streak, avgMs, mode?, deck?]
           if (Array.isArray(parsed)) {
-            [score, accuracy, streak, avgMs] = parsed;
+            score = parsed[0];
+            accuracy = parsed[1];
+            streak = parsed[2];
+            avgMs = parsed[3];
+            mode = parsed[4] || 'sprint';
+            deckId = parsed[5] || 'nfl-playoffs';
           } else if (parsed.s !== undefined) {
-            // Handle object format {s, a, bs, ar}
+            // Handle object format {s, a, bs, ar, m?, d?}
             score = parsed.s;
             accuracy = parsed.a;
             streak = parsed.bs;
             avgMs = parsed.ar;
+            mode = parsed.m || 'sprint';
+            deckId = parsed.d || 'nfl-playoffs';
           } else {
             // Old format
             score = parsed.score;
             accuracy = parsed.accuracy;
             streak = parsed.bestStreak;
             avgMs = parsed.avgResponseMs;
+            mode = parsed.mode || 'sprint';
+            deckId = parsed.deckId || 'nfl-playoffs';
           }
 
-          const ogImageUrl = `https://recall-rush-og-worker.christopher-037.workers.dev/?score=${score}&acc=${accuracy}&streak=${streak}&avg=${avgMs}`;
-          const title = 'Recall Rush — Shared Run';
+          // Format mode and deck for display
+          const modeLabel = mode === 'sudden' ? 'Sudden Death' : 'Sprint';
+          const deckLabel = deckId === 'nfl-playoffs' ? 'NFL Playoffs' :
+                           deckId === 'demo' ? 'Demo' :
+                           deckId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+          const ogImageUrl = `https://recall-rush-og-worker.christopher-037.workers.dev/?score=${score}&acc=${accuracy}&streak=${streak}&avg=${avgMs}&mode=${encodeURIComponent(mode)}&deck=${encodeURIComponent(deckId)}`;
+          const title = `Recall Rush — ${modeLabel} • ${deckLabel}`;
           const description = `Score: ${score} • Accuracy: ${accuracy}% • Best streak: ${streak}`;
 
           // Inject OG meta tags into HTML

@@ -44,7 +44,7 @@ function decodeRunData(encoded: string): RunData | null {
       parsed = JSON.parse(decodeURIComponent(d));
     }
 
-    // Handle ultra-compact array format [score, accuracy, streak, avgMs]
+    // Handle ultra-compact array format [score, accuracy, streak, avgMs, mode?, deck?]
     if (Array.isArray(parsed)) {
       return {
         runId: "",
@@ -54,8 +54,8 @@ function decodeRunData(encoded: string): RunData | null {
         answered: 0,
         bestStreak: Number(parsed[2]) || 0,
         avgResponseMs: Number(parsed[3]) || 0,
-        mode: "sprint",
-        deckId: "nfl-playoffs",
+        mode: String(parsed[4] || "sprint"),
+        deckId: String(parsed[5] || "nfl-playoffs"),
         timestamp: 0,
       };
     }

@@ -35,10 +35,16 @@ export default {
       const mode = qStr(sp, "mode", "sprint");
       const deck = qStr(sp, "deck", "demo");
 
+      // Format mode and deck for display
+      const modeLabel = mode === 'sudden' ? 'Sudden Death' : 'Sprint';
+      const deckLabel = deck === 'nfl-playoffs' ? 'NFL Playoffs' :
+                       deck === 'demo' ? 'Demo' :
+                       deck.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+
       const html =
         `<div style="width:1200px;height:630px;background:#111;color:#fff;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;flex-direction:column;align-items:center;justify-content:center;">` +
         `<div style="display:flex;flex-direction:column;align-items:center;margin-bottom:40px;">` +
-        `<div style="display:flex;flex-direction:column;font-size:48px;font-weight:700;">Recall Rush — ${mode} • ${deck}</div>` +
+        `<div style="display:flex;flex-direction:column;font-size:48px;font-weight:700;">Recall Rush — ${modeLabel} • ${deckLabel}</div>` +
         `</div>` +
         `<div style="display:flex;flex-direction:row;flex-wrap:wrap;gap:24px;justify-content:center;">` +
         `<div style="display:flex;flex-direction:column;width:540px;padding:24px;background:#222;border-radius:12px;">` +
