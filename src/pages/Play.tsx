@@ -98,7 +98,6 @@ function decodeRunData(encoded: string): RunData | null {
 
 function buildShareText({
   mode,
-  deckId,
   deckLabel,
   score,
   maxScore,
@@ -106,7 +105,6 @@ function buildShareText({
   resultsLink,
 }: {
   mode: string;
-  deckId: string;
   deckLabel: string;
   score: number;
   maxScore: number;
@@ -223,7 +221,6 @@ export default function Play() {
 
     const text = buildShareText({
       mode,
-      deckId,
       deckLabel,
       score: session.scoreState.score,
       maxScore: 450,
