@@ -42,9 +42,9 @@ function decodeRunData(encoded: string): RunData | null {
 }
 
 function renderGrid(tiles: Tile[]): string {
-  const blockSize = 16;
-  const gap = 6;
-  const blocksPerRow = 10;
+  const blockSize = 20;
+  const gap = 8;
+  const blocksPerRow = 5;
 
   let gridHtml = `<div style="display:flex;flex-wrap:wrap;gap:${gap}px;justify-content:center;max-width:${blocksPerRow * (blockSize + gap)}px;">`;
 
@@ -62,7 +62,7 @@ function renderGrid(tiles: Tile[]): string {
         color = "#d1d5db"; // gray-300
         break;
     }
-    gridHtml += `<div style="width:${blockSize}px;height:${blockSize}px;background:${color};border-radius:2px;"></div>`;
+    gridHtml += `<div style="width:${blockSize}px;height:${blockSize}px;background:${color};border-radius:3px;"></div>`;
   }
 
   gridHtml += `</div>`;
@@ -110,6 +110,7 @@ export default {
 
         const html =
           `<div style="width:1200px;height:630px;background:#111;color:#fff;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;">` +
+          `<div style="width:80px;height:80px;background:#fff;color:#111;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;margin-bottom:24px;">RR</div>` +
           `<div style="display:flex;flex-direction:column;align-items:center;margin-bottom:40px;">` +
           `<div style="font-size:48px;font-weight:700;margin-bottom:16px;">Recall Rush — Daily Sprint</div>` +
           `<div style="font-size:36px;opacity:0.8;">${deckLabel}</div>` +

@@ -10,6 +10,7 @@ export function getUtcDayKey(): string {
     const params = new URLSearchParams(window.location.search);
     const override = params.get("day");
     if (override && /^\d{4}-\d{2}-\d{2}$/.test(override)) {
+      console.log("[RR] Dev override: day =", override);
       return override;
     }
   }
@@ -46,13 +47,16 @@ export function dailySeed(deckId: string): number {
     if (override) {
       const seedNum = parseInt(override, 10);
       if (!isNaN(seedNum)) {
+        console.log("[RR] Dev override: seed =", seedNum);
         return seedNum;
       }
     }
   }
 
   const dayKey = getUtcDayKey();
-  return hashStringToSeed(`${deckId}|${dayKey}`);
+  const seed = hashStringToSeed(`${deckId}|${dayKey}`);
+  console.log("[RR] Daily seed for", deckId, "on", dayKey, "=", seed);
+  return seed;
 }
 
 /**

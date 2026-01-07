@@ -128,16 +128,17 @@ export default function Play() {
 
   const session = usePlaySession(deckId, mode);
   const [copied, setCopied] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
 
   // Handle reset parameter to clear localStorage locks
   useEffect(() => {
     const resetParam = sp.get("reset");
     if (resetParam === "1") {
+      console.log("[RR] Reset triggered - clearing locks for", deckId, session.dayKey);
       const lockKey = `rr:played:${deckId}:${session.dayKey}`;
       const lastRunKey = `rr:lastRun:${deckId}:${session.dayKey}`;
       localStorage.removeItem(lockKey);
       localStorage.removeItem(lastRunKey);
+      console.log("[RR] Cleared:", lockKey, lastRunKey);
 
       // Remove reset parameter from URL
       const newParams = new URLSearchParams(sp);
@@ -145,6 +146,7 @@ export default function Play() {
       setSp(newParams, { replace: true });
 
       // Force reload
+      console.log("[RR] Reloading page...");
       window.location.reload();
     }
   }, [sp, setSp, deckId, session.dayKey]);
@@ -257,53 +259,6 @@ export default function Play() {
       }
     } catch (err) {
       console.error("Share/clipboard failed:", err);
-    }
-  }
-
-  async function handleShareLink() {
-    const accuracy =
-      session.stats.answered > 0
-        ? Math.round((session.stats.correct / session.stats.answered) * 100)
-        : 0;
-
-    // Generate tiles from answer events
-    const tiles = session.answerEvents.map((evt) => tileForEvent(evt));
-
-    // Format deck label
-    const deckLabel =
-      deckId === "nfl-playoffs"
-        ? "NFL Playoffs"
-        : deckId === "demo"
-        ? "Demo"
-        : deckId.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-
-    const runData: RunData = {
-      runId: session.runId,
-      score: session.scoreState.score,
-      accuracy,
-      correct: session.stats.correct,
-      answered: session.stats.answered,
-      bestStreak: session.scoreState.bestStreak,
-      avgResponseMs: session.stats.avgResponseMs,
-      mode,
-      deckId,
-      timestamp: Date.now(),
-      tiles,
-      maxScore: 450, // Perfect score for 25 cards
-      deckLabel,
-      dayKey: session.dayKey,
-    };
-
-    const encoded = encodeRunData(runData);
-    const base = window.location.origin;
-    const link = `${base}/results?r=${encoded}`;
-
-    try {
-      await navigator.clipboard.writeText(link);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 1500);
-    } catch (err) {
-      console.error("Clipboard failed:", err);
     }
   }
 
@@ -455,20 +410,12 @@ export default function Play() {
 
             {!activeSharedRun && (
               <>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleShare}
-                    className="flex-1 px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
-                  >
-                    {copied ? "✓ Copied!" : "Share Score"}
-                  </button>
-                  <button
-                    onClick={handleShareLink}
-                    className="flex-1 px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
-                  >
-                    {linkCopied ? "✓ Copied!" : "Copy Link"}
-                  </button>
-                </div>
+                <button
+                  onClick={handleShare}
+                  className="w-full px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+                >
+                  {copied ? "✓ Copied!" : "Share Score"}
+                </button>
 
                 {!session.isLocked && (
                   <button
@@ -664,20 +611,12 @@ export default function Play() {
               Daily Sprint
             </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={handleShare}
-                className="flex-1 px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
-              >
-                {copied ? "✓ Copied!" : "Share Score"}
-              </button>
-              <button
-                onClick={handleShareLink}
-                className="flex-1 px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
-              >
-                {linkCopied ? "✓ Copied!" : "Copy Link"}
-              </button>
-            </div>
+            <button
+              onClick={handleShare}
+              className="w-full px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+            >
+              {copied ? "✓ Copied!" : "Share Score"}
+            </button>
 
             {!session.isLocked && (
               <button
