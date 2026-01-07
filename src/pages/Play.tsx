@@ -1,7 +1,7 @@
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { usePlaySession } from "../features/play/usePlaySession";
-import { tileForEvent, emojiPyramid, type Tile } from "../features/play/shareGrid";
+import { tileForEvent, emojiGrid, type Tile } from "../features/play/shareGrid";
 
 type RunData = {
   runId: string;
@@ -17,7 +17,6 @@ type RunData = {
   tiles: Tile[];
   maxScore: number;
   deckLabel?: string;
-  fastThresholdMs?: number;
 };
 
 function encodeRunData(data: RunData): string {
@@ -32,7 +31,6 @@ function encodeRunData(data: RunData): string {
     data.tiles,
     data.maxScore,
     data.deckLabel,
-    data.fastThresholdMs,
   ];
   return btoa(JSON.stringify(compact));
 }
@@ -42,7 +40,7 @@ function decodeRunData(encoded: string): RunData | null {
     const json = atob(encoded);
     const parsed = JSON.parse(json);
 
-    // Handle array format [score, accuracy, streak, avgMs, mode?, deck?, tiles?, maxScore?, deckLabel?, fastThresholdMs?]
+    // Handle array format [score, accuracy, streak, avgMs, mode?, deck?, tiles?, maxScore?, deckLabel?]
     if (Array.isArray(parsed)) {
       const tiles = parsed[6] && Array.isArray(parsed[6]) ? parsed[6] : [];
 
@@ -60,7 +58,6 @@ function decodeRunData(encoded: string): RunData | null {
         tiles,
         maxScore: parsed[7] || 450,
         deckLabel: parsed[8],
-        fastThresholdMs: parsed[9],
       };
     }
 
@@ -80,7 +77,6 @@ function decodeRunData(encoded: string): RunData | null {
         tiles: parsed.tiles || [],
         maxScore: parsed.maxScore || 450,
         deckLabel: parsed.deckLabel,
-        fastThresholdMs: parsed.fastThresholdMs,
       };
     }
 
@@ -96,7 +92,7 @@ function decodeRunData(encoded: string): RunData | null {
   }
 }
 
-function buildShareText({
+function buildShareData({
   mode,
   deckLabel,
   score,
@@ -112,14 +108,14 @@ function buildShareText({
   resultsLink: string;
 }) {
   const modeLabel = mode === "sudden" ? "Sudden Death" : "Sprint";
-  const pyramid = emojiPyramid(tiles);
+  const grid = emojiGrid(tiles, 10);
 
-  return `Recall Rush — ${deckLabel} (${modeLabel})
-${score}/${maxScore}
+  const title = `Recall Rush — ${deckLabel} (${modeLabel})`;
+  const text = `${score}/${maxScore}
 
-${pyramid}
+${grid}`;
 
-🔗 ${resultsLink}`;
+  return { title, text, url: resultsLink };
 }
 
 export default function Play() {
@@ -172,9 +168,7 @@ export default function Play() {
           mode,
           deckId,
           timestamp: session.finishedAt,
-          tiles: session.answerEvents.map((evt) =>
-            tileForEvent(evt, session.cfg.perCardMs * 0.9)
-          ),
+          tiles: session.answerEvents.map((evt) => tileForEvent(evt)),
           maxScore: 450,
         }
       : null);
@@ -186,9 +180,7 @@ export default function Play() {
         : 0;
 
     // Generate tiles from answer events
-    const tiles = session.answerEvents.map((evt) =>
-      tileForEvent(evt, session.cfg.perCardMs * 0.9)
-    );
+    const tiles = session.answerEvents.map((evt) => tileForEvent(evt));
 
     // Format deck label
     const deckLabel =
@@ -212,14 +204,13 @@ export default function Play() {
       tiles,
       maxScore: 450,
       deckLabel,
-      fastThresholdMs: Math.round(session.cfg.perCardMs * 0.9),
     };
 
     const encoded = encodeRunData(runData);
     const base = window.location.origin;
     const resultsLink = `${base}/results?r=${encoded}`;
 
-    const text = buildShareText({
+    const shareData = buildShareData({
       mode,
       deckLabel,
       score: session.scoreState.score,
@@ -231,12 +222,13 @@ export default function Play() {
     try {
       // Try native share first (mobile)
       if (navigator.share) {
-        await navigator.share({ text });
+        await navigator.share(shareData);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       } else {
-        // Fall back to clipboard
-        await navigator.clipboard.writeText(text);
+        // Fall back to clipboard with formatted text
+        const fallbackText = `${shareData.title}\n${shareData.text}\n\n🔗 ${shareData.url}`;
+        await navigator.clipboard.writeText(fallbackText);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }
@@ -252,9 +244,7 @@ export default function Play() {
         : 0;
 
     // Generate tiles from answer events
-    const tiles = session.answerEvents.map((evt) =>
-      tileForEvent(evt, session.cfg.perCardMs * 0.9)
-    );
+    const tiles = session.answerEvents.map((evt) => tileForEvent(evt));
 
     // Format deck label
     const deckLabel =
@@ -278,7 +268,6 @@ export default function Play() {
       tiles,
       maxScore: 450, // Perfect score for 25 cards
       deckLabel,
-      fastThresholdMs: Math.round(session.cfg.perCardMs * 0.9),
     };
 
     const encoded = encodeRunData(runData);
@@ -407,7 +396,7 @@ export default function Play() {
                   {resultsData.score}/{resultsData.maxScore || 450}
                 </div>
                 <div className="text-center font-mono text-2xl leading-relaxed whitespace-pre">
-                  {emojiPyramid(resultsData.tiles)}
+                  {emojiGrid(resultsData.tiles, 10)}
                 </div>
               </div>
             )}
@@ -609,10 +598,9 @@ export default function Play() {
                   {session.scoreState.score}/450
                 </div>
                 <div className="text-center font-mono text-2xl leading-relaxed whitespace-pre">
-                  {emojiPyramid(
-                    session.answerEvents.map((evt) =>
-                      tileForEvent(evt, session.cfg.perCardMs * 0.9)
-                    )
+                  {emojiGrid(
+                    session.answerEvents.map((evt) => tileForEvent(evt)),
+                    10
                   )}
                 </div>
               </div>

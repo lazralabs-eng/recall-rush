@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
+import { emojiGrid, type Tile } from "../features/play/shareGrid";
 
 // Cloudflare Worker endpoint for OG images
 const OG_BASE = "https://recall-rush-og-worker.christopher-037.workers.dev";
@@ -15,6 +16,9 @@ type RunData = {
   mode: string;
   deckId: string;
   timestamp: number;
+  tiles: Tile[];
+  maxScore: number;
+  deckLabel?: string;
 };
 
 function decodeRunData(encoded: string): RunData | null {
@@ -44,8 +48,10 @@ function decodeRunData(encoded: string): RunData | null {
       parsed = JSON.parse(decodeURIComponent(d));
     }
 
-    // Handle ultra-compact array format [score, accuracy, streak, avgMs, mode?, deck?]
+    // Handle ultra-compact array format [score, accuracy, streak, avgMs, mode?, deck?, tiles?, maxScore?, deckLabel?]
     if (Array.isArray(parsed)) {
+      const tiles = parsed[6] && Array.isArray(parsed[6]) ? parsed[6] : [];
+
       return {
         runId: "",
         score: Number(parsed[0]) || 0,
@@ -57,6 +63,9 @@ function decodeRunData(encoded: string): RunData | null {
         mode: String(parsed[4] || "sprint"),
         deckId: String(parsed[5] || "nfl-playoffs"),
         timestamp: 0,
+        tiles,
+        maxScore: Number(parsed[7]) || 450,
+        deckLabel: parsed[8],
       };
     }
 
@@ -73,6 +82,9 @@ function decodeRunData(encoded: string): RunData | null {
         mode: String(parsed.m || "sprint"),
         deckId: String(parsed.d || "demo"),
         timestamp: 0,
+        tiles: parsed.tiles || [],
+        maxScore: Number(parsed.maxScore) || 450,
+        deckLabel: parsed.deckLabel,
       };
     }
 
@@ -98,6 +110,9 @@ function decodeRunData(encoded: string): RunData | null {
       bestStreak: Number(parsed.bestStreak) || 0,
       avgResponseMs: Number(parsed.avgResponseMs) || 0,
       timestamp: Number(parsed.timestamp) || 0,
+      tiles: parsed.tiles || [],
+      maxScore: Number(parsed.maxScore) || 450,
+      deckLabel: parsed.deckLabel,
     };
 
     return result;
@@ -213,6 +228,17 @@ export default function Results() {
               <span className="font-semibold">{resultsData.answered}</span>
             </div>
           </div>
+
+          {resultsData.tiles && resultsData.tiles.length > 0 && (
+            <div className="p-4 rounded bg-gray-50 border">
+              <div className="text-center mb-2 font-semibold">
+                {resultsData.score}/{resultsData.maxScore || 450}
+              </div>
+              <div className="text-center font-mono text-2xl leading-relaxed whitespace-pre">
+                {emojiGrid(resultsData.tiles, 10)}
+              </div>
+            </div>
+          )}
 
           <div className="text-xs opacity-70 text-center">
             Mode: {resultsData.mode === "sudden" ? "Sudden Death" : "Sprint"} •

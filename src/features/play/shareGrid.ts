@@ -1,6 +1,6 @@
 // Wordle-style share grid generator
 
-export type Tile = "G" | "Y" | "R";
+export type Tile = "G" | "R" | "T";
 
 export type AnswerEvent = {
   correct: boolean;
@@ -10,18 +10,18 @@ export type AnswerEvent = {
 
 /**
  * Convert answer event to tile color
- * - Timeout or wrong → Red
- * - Correct and fast → Green
- * - Correct but slow → Yellow
+ * - Timeout → Gray (T)
+ * - Wrong → Red (R)
+ * - Correct → Green (G)
  */
-export function tileForEvent(
-  event: AnswerEvent,
-  fastThresholdMs = 900
-): Tile {
-  if (event.timeout || !event.correct) {
+export function tileForEvent(event: AnswerEvent): Tile {
+  if (event.timeout) {
+    return "T";
+  }
+  if (!event.correct) {
     return "R";
   }
-  return event.responseMs <= fastThresholdMs ? "G" : "Y";
+  return "G";
 }
 
 /**
@@ -33,38 +33,32 @@ export function tilesToEmoji(tiles: Tile[]): string {
       switch (t) {
         case "G":
           return "🟩";
-        case "Y":
-          return "🟨";
         case "R":
           return "🟥";
+        case "T":
+          return "⬜";
       }
     })
     .join("");
 }
 
 /**
- * Split tiles into pyramid rows: 1, 2, 3, 4, 5...
- * Example: 15 tiles → rows of [1, 2, 3, 4, 5]
+ * Split tiles into grid rows with specified row size
+ * Example: 25 tiles, rowSize=10 → rows of [10, 10, 5]
  */
-export function pyramidRows(tiles: Tile[]): Tile[][] {
+export function gridRows(tiles: Tile[], rowSize: number): Tile[][] {
   const rows: Tile[][] = [];
-  let idx = 0;
-  let rowSize = 1;
-
-  while (idx < tiles.length) {
-    const row = tiles.slice(idx, idx + rowSize);
-    rows.push(row);
-    idx += rowSize;
-    rowSize++;
+  for (let i = 0; i < tiles.length; i += rowSize) {
+    rows.push(tiles.slice(i, i + rowSize));
   }
-
   return rows;
 }
 
 /**
- * Generate emoji pyramid string (newline-delimited rows)
+ * Generate emoji grid string (newline-delimited rows)
+ * Default row size: 10 (desktop), use 8 for mobile
  */
-export function emojiPyramid(tiles: Tile[]): string {
-  const rows = pyramidRows(tiles);
+export function emojiGrid(tiles: Tile[], rowSize = 10): string {
+  const rows = gridRows(tiles, rowSize);
   return rows.map(tilesToEmoji).join("\n");
 }
