@@ -55,6 +55,7 @@ export default {
 
       // Inject OG tags for homepage
       if (url.pathname === '/' || url.pathname === '') {
+        console.log('[Worker] Injecting OG tags for homepage');
         const title = 'Daily Recall — One deck. One run. Every day.';
         const description = 'Test your memory under pressure. No signups. No retries. Just recall.';
         const ogImageUrl = url.origin + '/og/daily.png';
