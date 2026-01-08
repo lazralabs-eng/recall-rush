@@ -445,7 +445,7 @@ export default function Play() {
                   {resultsData.score}/{resultsData.maxScore || 450}
                 </div>
                 <div className="py-2">
-                  <RunGrid pattern={resultsData.tiles} size="lg" />
+                  <RunGrid pattern={resultsData.tiles} size="sm" />
                 </div>
               </div>
             )}
@@ -456,19 +456,26 @@ export default function Play() {
 
             {!activeSharedRun && (
               <>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={handleShare}
-                    className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
-                  >
-                    {copied ? "✓ Shared!" : "Share Score"}
-                  </button>
-                  <button
-                    onClick={handleCopyLink}
-                    className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
-                  >
-                    {linkCopied ? "✓ Copied!" : "Copy Link"}
-                  </button>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={handleShare}
+                      className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+                    >
+                      {copied ? "✓ Shared!" : "Share Result"}
+                    </button>
+                    <button
+                      onClick={handleCopyLink}
+                      className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+                    >
+                      {linkCopied ? "✓ Copied!" : "Copy Challenge Link"}
+                    </button>
+                  </div>
+                  {linkCopied && (
+                    <div className="text-center text-sm text-green-600">
+                      Challenge link copied to clipboard
+                    </div>
+                  )}
                 </div>
 
                 {session.isLocked && (
@@ -647,7 +654,7 @@ export default function Play() {
                 <div className="py-2">
                   <RunGrid
                     pattern={session.answerEvents.map((evt) => tileForEvent(evt))}
-                    size="lg"
+                    size="sm"
                   />
                 </div>
               </div>

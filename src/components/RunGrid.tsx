@@ -14,7 +14,7 @@ export function RunGrid({ pattern, size = "lg" }: RunGridProps) {
 
   // Size variants
   const blockSize = size === "sm" ? "w-3 h-3" : "w-4 h-4";
-  const gap = size === "sm" ? "gap-1" : "gap-1.5";
+  const gap = size === "sm" ? "gap-0.5" : "gap-1.5";
 
   return (
     <div className={`flex flex-wrap ${gap} justify-center`}>
