@@ -10,7 +10,7 @@
   "kv_namespaces": [
     {
       "binding": "RESULTS_KV",
-      "id": "YOUR_KV_NAMESPACE_ID"
+      "id": "fe23150d62bd446eab710c73e4cbb62e"
     }
   ],
   "observability": {

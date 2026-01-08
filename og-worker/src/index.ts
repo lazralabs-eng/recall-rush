@@ -62,7 +62,7 @@ function renderGrid(tiles: Tile[]): string {
         color = "#d1d5db"; // gray-300
         break;
     }
-    gridHtml += `<div style="width:${blockSize}px;height:${blockSize}px;background:${color};border-radius:3px;"></div>`;
+    gridHtml += `<div style="display:flex;width:${blockSize}px;height:${blockSize}px;background:${color};border-radius:3px;"></div>`;
   }
 
   gridHtml += `</div>`;
@@ -93,7 +93,66 @@ export default {
       const url = new URL(request.url);
       const sp = url.searchParams;
 
-      // Check if home=1 parameter is provided (homepage OG image)
+      // Handle /og/daily.png path
+      if (url.pathname === "/og/daily.png") {
+        const html =
+          `<div style="width:1200px;height:630px;background:#111;color:#fff;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;">` +
+          `<div style="width:100px;height:100px;background:#fff;color:#111;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:50px;font-weight:900;margin-bottom:32px;">RR</div>` +
+          `<div style="display:flex;flex-direction:column;align-items:center;margin-bottom:32px;">` +
+          `<div style="display:flex;font-size:64px;font-weight:800;margin-bottom:20px;">Daily Recall</div>` +
+          `<div style="display:flex;font-size:36px;opacity:0.8;margin-bottom:20px;">One deck. One run. Every day.</div>` +
+          `<div style="display:flex;font-size:28px;opacity:0.7;">Test your memory under pressure.</div>` +
+          `</div>` +
+          `<div style="display:flex;font-size:24px;opacity:0.6;margin-top:24px;">No signups. No retries. Just recall.</div>` +
+          `</div>`;
+
+        return new ImageResponse(html, {
+          width: 1200,
+          height: 630,
+          headers: {
+            'cache-control': 'public, max-age=3600',
+          },
+        });
+      }
+
+      // Handle /og/result/{hash}.png path
+      const resultMatch = url.pathname.match(/^\/og\/result\/([^\/]+)\.png$/);
+      if (resultMatch) {
+        const encodedRun = resultMatch[1];
+        const runData = decodeRunData(encodedRun);
+        if (!runData) {
+          return new Response("Invalid run data", { status: 400 });
+        }
+
+        const deckLabel = runData.deckLabel ||
+          (runData.deckId === 'nfl-playoffs' ? 'NFL Playoffs' :
+           runData.deckId === 'demo' ? 'Demo' :
+           runData.deckId.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()));
+
+        const gridHtml = renderGrid(runData.tiles);
+
+        const html =
+          `<div style="width:1200px;height:630px;background:#111;color:#fff;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;">` +
+          `<div style="width:80px;height:80px;background:#fff;color:#111;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;margin-bottom:24px;">RR</div>` +
+          `<div style="display:flex;flex-direction:column;align-items:center;margin-bottom:40px;">` +
+          `<div style="display:flex;font-size:48px;font-weight:700;margin-bottom:16px;">Recall Rush — Daily Sprint</div>` +
+          `<div style="display:flex;font-size:36px;opacity:0.8;">${deckLabel}</div>` +
+          `</div>` +
+          `<div style="display:flex;margin-bottom:32px;">${gridHtml}</div>` +
+          `<div style="display:flex;font-size:32px;font-weight:700;">${runData.score}/${runData.maxScore}</div>` +
+          `<div style="display:flex;font-size:24px;opacity:0.7;margin-top:16px;">${runData.accuracy}% accuracy • ${runData.bestStreak} best streak</div>` +
+          `</div>`;
+
+        return new ImageResponse(html, {
+          width: 1200,
+          height: 630,
+          headers: {
+            'cache-control': 'public, max-age=86400',
+          },
+        });
+      }
+
+      // Legacy: Check if home=1 parameter is provided (homepage OG image)
       if (sp.get("home") === "1") {
         const html =
           `<div style="width:1200px;height:630px;background:#111;color:#fff;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;">` +
