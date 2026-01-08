@@ -61,7 +61,7 @@ export default {
         const ogImageUrl = url.origin + '/og/daily.png';
         const canonicalUrl = url.origin + '/';
 
-        return new HTMLRewriter()
+        const transformed = new HTMLRewriter()
           .on('head', {
             element(element) {
               element.append(
@@ -79,6 +79,11 @@ export default {
             }
           })
           .transform(response);
+
+        // Add a custom header to verify the worker is running
+        const modifiedResponse = new Response(transformed.body, transformed);
+        modifiedResponse.headers.set('X-Worker-Processed', 'homepage');
+        return modifiedResponse;
       }
 
       // Inject OG tags for /results route with ?r= parameter
@@ -129,7 +134,7 @@ export default {
           const description = `Score: ${score} • Accuracy: ${accuracy}% • Best streak: ${streak}`;
 
           // Inject OG meta tags into HTML
-          return new HTMLRewriter()
+          const transformed = new HTMLRewriter()
             .on('head', {
               element(element) {
                 element.append(
@@ -147,6 +152,11 @@ export default {
               }
             })
             .transform(response);
+
+          // Add debug header
+          const modifiedResponse = new Response(transformed.body, transformed);
+          modifiedResponse.headers.set('X-Worker-Processed', 'results');
+          return modifiedResponse;
         } catch (e) {
           // If decoding fails, just return the response as-is
           console.error('Failed to decode run data:', e);
