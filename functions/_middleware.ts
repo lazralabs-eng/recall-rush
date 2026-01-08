@@ -1,5 +1,5 @@
-// Cloudflare Pages Function for homepage route
-// Injects OG tags for social media sharing
+// Cloudflare Pages Middleware to inject OG tags on homepage
+// Runs on all requests, injects OG tags for bots on homepage only
 
 function isBot(userAgent: string): boolean {
   const botPatterns = [
@@ -72,17 +72,17 @@ export async function onRequest(context: any): Promise<Response> {
   const url = new URL(request.url);
   const userAgent = request.headers.get('user-agent') || '';
 
-  // Only serve special HTML for bots (social media scrapers)
-  if (!isBot(userAgent)) {
-    return next(); // Serve normal SPA for regular users
+  // Only handle homepage for bots
+  if (url.pathname === '/' && isBot(userAgent)) {
+    const html = generateBotHTML(url.origin);
+    return new Response(html, {
+      headers: {
+        'content-type': 'text/html;charset=UTF-8',
+        'cache-control': 'public, max-age=3600',
+      },
+    });
   }
 
-  // Generate and return HTML for bots with OG tags
-  const html = generateBotHTML(url.origin);
-  return new Response(html, {
-    headers: {
-      'content-type': 'text/html;charset=UTF-8',
-      'cache-control': 'public, max-age=3600',
-    },
-  });
+  // Pass through to other routes
+  return next();
 }
