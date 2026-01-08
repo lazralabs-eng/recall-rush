@@ -75,7 +75,8 @@ export function usePlaySession(deckId: string, mode: Mode) {
 
   function finish(reason: string) {
     setPhase("finished");
-    setFinishedAt(Date.now());
+    const finishTime = Date.now();
+    setFinishedAt(finishTime);
     stopLoop();
     clearRevealTimer();
 
@@ -97,6 +98,18 @@ export function usePlaySession(deckId: string, mode: Mode) {
       ),
     };
     localStorage.setItem(lastRunKey, JSON.stringify(lastRun));
+
+    // Analytics log
+    const durationMs = finishTime - startedAtRef.current;
+    console.log("GAME_COMPLETE", {
+      deck: deckId,
+      mode: forcedMode,
+      score: scoreState.score,
+      correct: stats.correct,
+      wrong: stats.wrong,
+      total: stats.answered,
+      durationMs,
+    });
 
     console.log("[RecallRush] finished:", reason);
   }

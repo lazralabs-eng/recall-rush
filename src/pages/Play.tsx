@@ -128,6 +128,7 @@ export default function Play() {
 
   const session = usePlaySession(deckId, mode);
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Handle reset parameter to clear localStorage locks
   useEffect(() => {
@@ -245,20 +246,65 @@ export default function Play() {
     });
 
     try {
-      // Try native share first (mobile)
+      // Use Web Share API when available (mobile-first)
       if (navigator.share) {
         await navigator.share(shareData);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       } else {
-        // Fall back to clipboard with formatted text
-        const fallbackText = `${shareData.title}\n${shareData.text}\n\n🔗 ${shareData.url}`;
+        // Fall back to clipboard - text only without URL visible
+        const fallbackText = `${shareData.title}\n${shareData.text}`;
         await navigator.clipboard.writeText(fallbackText);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }
     } catch (err) {
       console.error("Share/clipboard failed:", err);
+    }
+  }
+
+  async function handleCopyLink() {
+    const accuracy =
+      session.stats.answered > 0
+        ? Math.round((session.stats.correct / session.stats.answered) * 100)
+        : 0;
+
+    const tiles = session.answerEvents.map((evt) => tileForEvent(evt));
+
+    const deckLabel =
+      deckId === "nfl-playoffs"
+        ? "NFL Playoffs"
+        : deckId === "demo"
+        ? "Demo"
+        : deckId.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+
+    const runData: RunData = {
+      runId: session.runId,
+      score: session.scoreState.score,
+      accuracy,
+      correct: session.stats.correct,
+      answered: session.stats.answered,
+      bestStreak: session.scoreState.bestStreak,
+      avgResponseMs: session.stats.avgResponseMs,
+      mode,
+      deckId,
+      timestamp: Date.now(),
+      tiles,
+      maxScore: 450,
+      deckLabel,
+      dayKey: session.dayKey,
+    };
+
+    const encoded = encodeRunData(runData);
+    const base = window.location.origin;
+    const resultsLink = `${base}/results?r=${encoded}`;
+
+    try {
+      await navigator.clipboard.writeText(resultsLink);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1500);
+    } catch (err) {
+      console.error("Copy link failed:", err);
     }
   }
 
@@ -410,21 +456,21 @@ export default function Play() {
 
             {!activeSharedRun && (
               <>
-                <button
-                  onClick={handleShare}
-                  className="w-full px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
-                >
-                  {copied ? "✓ Copied!" : "Share Score"}
-                </button>
-
-                {!session.isLocked && (
+                <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={session.start}
-                    className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
+                    onClick={handleShare}
+                    className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
                   >
-                    Play Again
+                    {copied ? "✓ Shared!" : "Share Score"}
                   </button>
-                )}
+                  <button
+                    onClick={handleCopyLink}
+                    className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+                  >
+                    {linkCopied ? "✓ Copied!" : "Copy Link"}
+                  </button>
+                </div>
+
                 {session.isLocked && (
                   <div className="text-center py-3 text-sm opacity-70">
                     Thanks for playing! Come back tomorrow for a new challenge.
@@ -611,21 +657,21 @@ export default function Play() {
               Daily Sprint
             </div>
 
-            <button
-              onClick={handleShare}
-              className="w-full px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
-            >
-              {copied ? "✓ Copied!" : "Share Score"}
-            </button>
-
-            {!session.isLocked && (
+            <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={session.start}
-                className="w-full px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition font-semibold"
+                onClick={handleShare}
+                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
               >
-                Play Again
+                {copied ? "✓ Shared!" : "Share Score"}
               </button>
-            )}
+              <button
+                onClick={handleCopyLink}
+                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+              >
+                {linkCopied ? "✓ Copied!" : "Copy Link"}
+              </button>
+            </div>
+
             {session.isLocked && (
               <div className="text-center py-3 text-sm opacity-70">
                 Thanks for playing! Come back tomorrow for a new challenge.
