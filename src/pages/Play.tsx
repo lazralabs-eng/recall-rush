@@ -297,14 +297,38 @@ export default function Play() {
 
     const encoded = encodeRunData(runData);
     const base = window.location.origin;
-    const resultsLink = `${base}/results?r=${encoded}`;
 
     try {
-      await navigator.clipboard.writeText(resultsLink);
+      // Call the API to create a short link
+      const response = await fetch(`${base}/api/shorten`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ encodedPayload: encoded }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create short link');
+      }
+
+      const { shortId } = await response.json();
+      const shortLink = `${base}/r/${shortId}`;
+
+      await navigator.clipboard.writeText(shortLink);
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 1500);
     } catch (err) {
       console.error("Copy link failed:", err);
+      // Fallback to long URL if short link creation fails
+      const fallbackLink = `${base}/results?r=${encoded}`;
+      try {
+        await navigator.clipboard.writeText(fallbackLink);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 1500);
+      } catch (fallbackErr) {
+        console.error("Fallback copy also failed:", fallbackErr);
+      }
     }
   }
 
@@ -664,19 +688,26 @@ export default function Play() {
               Daily Sprint
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={handleShare}
-                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
-              >
-                {copied ? "✓ Shared!" : "Share Score"}
-              </button>
-              <button
-                onClick={handleCopyLink}
-                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
-              >
-                {linkCopied ? "✓ Copied!" : "Copy Link"}
-              </button>
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleShare}
+                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+                >
+                  {copied ? "✓ Shared!" : "Share Result"}
+                </button>
+                <button
+                  onClick={handleCopyLink}
+                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition"
+                >
+                  {linkCopied ? "✓ Copied!" : "Copy Challenge Link"}
+                </button>
+              </div>
+              {linkCopied && (
+                <div className="text-center text-sm text-green-600">
+                  Challenge link copied to clipboard
+                </div>
+              )}
             </div>
 
             {session.isLocked && (
