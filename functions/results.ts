@@ -79,7 +79,7 @@ function generateBotHTML(runData: RunData, runParam: string, origin: string): st
   const title = `Recall Rush — Daily Sprint${dayInfo}`;
   const description = `${runData.score}/${runData.maxScore || 450} • ${runData.accuracy}% accuracy • Best streak: ${runData.bestStreak}`;
   const canonicalUrl = `${origin}/results?r=${encodeURIComponent(runParam)}`;
-  const ogImageUrl = `https://recall-rush-og-worker.christopher-037.workers.dev/?r=${encodeURIComponent(runParam)}`;
+  const ogImageUrl = `${origin}/og/result/${runParam}.png`;
 
   return `<!DOCTYPE html>
 <html lang="en">

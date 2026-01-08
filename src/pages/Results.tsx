@@ -1,10 +1,6 @@
 import { Link, useSearchParams } from "react-router-dom";
-import { useEffect } from "react";
 import { type Tile } from "../features/play/shareGrid";
 import { RunGrid } from "../components/RunGrid";
-
-// Cloudflare Worker endpoint for OG images
-const OG_BASE = "https://recall-rush-og-worker.christopher-037.workers.dev";
 
 type RunData = {
   runId: string;
@@ -132,39 +128,8 @@ export default function Results() {
   const runParam = sp.get("r");
   const resultsData = runParam ? decodeRunData(runParam) : null;
 
-  // Update OG meta tags for social sharing
-  useEffect(() => {
-    if (!resultsData || !runParam) return;
-
-    const ogImageUrl = `${OG_BASE}/?r=${encodeURIComponent(runParam)}`;
-    const dayInfo = resultsData.dayKey ? ` • ${resultsData.dayKey}` : '';
-    const title = `Recall Rush — Daily Sprint${dayInfo}`;
-    const description = `${resultsData.score}/${resultsData.maxScore || 450} • ${resultsData.accuracy}% accuracy • Best streak: ${resultsData.bestStreak}`;
-    const canonicalUrl = `${window.location.origin}/results?r=${encodeURIComponent(runParam)}`;
-
-    // Set or update meta tags (idempotent)
-    const setMeta = (property: string, content: string) => {
-      let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
-      if (!meta) {
-        meta = document.createElement("meta");
-        meta.setAttribute("property", property);
-        document.head.appendChild(meta);
-      }
-      meta.content = content;
-    };
-
-    setMeta("og:title", title);
-    setMeta("og:description", description);
-    setMeta("og:image", ogImageUrl);
-    setMeta("og:url", canonicalUrl);
-    setMeta("og:type", "website");
-    setMeta("twitter:card", "summary_large_image");
-    setMeta("twitter:title", title);
-    setMeta("twitter:description", description);
-    setMeta("twitter:image", ogImageUrl);
-
-    document.title = title;
-  }, [resultsData, runParam]);
+  // Note: OG tags are now server-rendered by the Worker and Pages Function
+  // No need for client-side meta tag injection
 
   if (!resultsData) {
     return (

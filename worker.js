@@ -1,8 +1,43 @@
 // Worker to inject OG tags for /results route
+const OG_WORKER_URL = 'https://recall-rush-og-worker.christopher-037.workers.dev';
+
 export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+
+      // Handle /og/* routes - proxy to OG worker with clean URLs
+      if (url.pathname.startsWith('/og/')) {
+        if (url.pathname === '/og/daily.png') {
+          // Homepage OG image
+          const ogUrl = `${OG_WORKER_URL}/?home=1`;
+          const ogResponse = await fetch(ogUrl);
+          return new Response(ogResponse.body, {
+            headers: {
+              'content-type': 'image/png',
+              'cache-control': 'public, max-age=3600',
+              'cdn-cache-control': 'public, max-age=86400',
+            },
+          });
+        }
+
+        // Match /og/result/{hash}.png
+        const resultMatch = url.pathname.match(/^\/og\/result\/([^\/]+)\.png$/);
+        if (resultMatch) {
+          const hash = resultMatch[1];
+          const ogUrl = `${OG_WORKER_URL}/?r=${encodeURIComponent(hash)}`;
+          const ogResponse = await fetch(ogUrl);
+          return new Response(ogResponse.body, {
+            headers: {
+              'content-type': 'image/png',
+              'cache-control': 'public, max-age=86400',
+              'cdn-cache-control': 'public, max-age=2592000',
+            },
+          });
+        }
+
+        return new Response('Not found', { status: 404 });
+      }
 
       // Get the asset response (use ASSETS binding or fallback to fetch)
       let response;
@@ -16,6 +51,33 @@ export default {
       // Handle SPA routing - serve index.html for non-file paths
       if (response.status === 404 && !url.pathname.match(/\.[a-zA-Z0-9]+$/)) {
         response = await env.ASSETS.fetch(new URL('/index.html', url.origin));
+      }
+
+      // Inject OG tags for homepage
+      if (url.pathname === '/' || url.pathname === '') {
+        const title = 'Daily Recall — One deck. One run. Every day.';
+        const description = 'Test your memory under pressure. No signups. No retries. Just recall.';
+        const ogImageUrl = url.origin + '/og/daily.png';
+        const canonicalUrl = url.origin + '/';
+
+        return new HTMLRewriter()
+          .on('head', {
+            element(element) {
+              element.append(
+                `<meta property="og:title" content="${title}">
+                 <meta property="og:description" content="${description}">
+                 <meta property="og:image" content="${ogImageUrl}">
+                 <meta property="og:type" content="website">
+                 <meta property="og:url" content="${canonicalUrl}">
+                 <meta name="twitter:card" content="summary_large_image">
+                 <meta name="twitter:title" content="${title}">
+                 <meta name="twitter:description" content="${description}">
+                 <meta name="twitter:image" content="${ogImageUrl}">`,
+                { html: true }
+              );
+            }
+          })
+          .transform(response);
       }
 
       // Inject OG tags for /results route with ?r= parameter
@@ -61,7 +123,7 @@ export default {
                            deckId === 'demo' ? 'Demo' :
                            deckId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-          const ogImageUrl = `https://recall-rush-og-worker.christopher-037.workers.dev/?score=${score}&acc=${accuracy}&streak=${streak}&avg=${avgMs}&mode=${encodeURIComponent(mode)}&deck=${encodeURIComponent(deckId)}`;
+          const ogImageUrl = `${url.origin}/og/result/${runParam}.png`;
           const title = `Recall Rush — ${modeLabel} • ${deckLabel}`;
           const description = `Score: ${score} • Accuracy: ${accuracy}% • Best streak: ${streak}`;
 

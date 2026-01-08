@@ -93,6 +93,22 @@ export default {
       const url = new URL(request.url);
       const sp = url.searchParams;
 
+      // Check if home=1 parameter is provided (homepage OG image)
+      if (sp.get("home") === "1") {
+        const html =
+          `<div style="width:1200px;height:630px;background:#111;color:#fff;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;">` +
+          `<div style="width:100px;height:100px;background:#fff;color:#111;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:50px;font-weight:900;margin-bottom:32px;">RR</div>` +
+          `<div style="display:flex;flex-direction:column;align-items:center;margin-bottom:32px;">` +
+          `<div style="font-size:64px;font-weight:800;margin-bottom:20px;">Daily Recall</div>` +
+          `<div style="font-size:36px;opacity:0.8;margin-bottom:20px;">One deck. One run. Every day.</div>` +
+          `<div style="font-size:28px;opacity:0.7;">Test your memory under pressure.</div>` +
+          `</div>` +
+          `<div style="font-size:24px;opacity:0.6;margin-top:24px;">No signups. No retries. Just recall.</div>` +
+          `</div>`;
+
+        return new ImageResponse(html, { width: 1200, height: 630 });
+      }
+
       // Check if r= parameter is provided (encoded run data)
       const encodedRun = sp.get("r");
       if (encodedRun) {
